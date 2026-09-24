@@ -54,7 +54,9 @@
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
         import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
-        const ADMIN_UID = '8VRjJBdsEfO8PLXGdrwjB4Xf1vz1';
+        const ADMIN_UID = 'jDvJwjfMgoTU2oXXxmK2AwywrlN2';
+        const ADMIN_EMAIL = 'admin@remagstyle.com';
+        const ADMIN_PASSWORD = 'RemagstyleAdmin123!';
         const app = initializeApp({ apiKey: 'AIzaSyCzcxTLAUH83sQsia4dPg5py19YzRsmw0o', authDomain: 'remagstyle-43b41.firebaseapp.com', projectId: 'remagstyle-43b41', messagingSenderId: '145831201308', appId: '1:145831201308:web:489a014516356f73a72dd9' });
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -81,7 +83,31 @@
         async function deleteAppointment() { const record = state.record; if (state.type !== 'appointment' || !record) return; if (!window.confirm('Delete this appointment permanently?')) return; try { await deleteDoc(doc(db, 'appointments', record.id)); closeDrawer(); showToast('Appointment deleted.'); } catch (error) { showToast('Could not delete. Check Firestore rules.'); console.error(error); } }
         async function saveDetail() { const record = state.record; const updates = { status: $('detail-status').value, updatedAt: new Date() }; if (state.type === 'order') { updates.deliveryStatus = $('detail-delivery').value.trim(); updates.adminMessage = $('detail-message').value.trim(); } else updates.adminReply = $('detail-message').value.trim(); try { await updateDoc(doc(db, state.type === 'order' ? 'orders' : 'appointments', record.id), updates); closeDrawer(); showToast('Update saved.'); } catch (error) { showToast('Could not save. Check Firestore rules.'); console.error(error); } }
 
-        $('login-form').addEventListener('submit', async (event) => { event.preventDefault(); $('login-message').classList.add('hidden'); try { await signInWithEmailAndPassword(auth, $('login-email').value.trim().toLowerCase(), $('login-password').value); } catch (error) { $('login-message').textContent = `Sign-in failed (${error.code || 'unknown error'}).`; $('login-message').classList.remove('hidden'); } });
+        $('login-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            $('login-message').classList.add('hidden');
+            const email = $('login-email').value.trim().toLowerCase();
+            const password = $('login-password').value;
+
+            if (email !== ADMIN_EMAIL.toLowerCase() || password !== ADMIN_PASSWORD) {
+                $('login-message').textContent = 'Invalid admin username or password.';
+                $('login-message').classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const credential = await signInWithEmailAndPassword(auth, email, password);
+                if (credential.user.uid !== ADMIN_UID || credential.user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+                    await signOut(auth);
+                    $('login-message').textContent = 'This account is not allowed to access the admin workspace.';
+                    $('login-message').classList.remove('hidden');
+                    return;
+                }
+            } catch (error) {
+                $('login-message').textContent = `Sign-in failed (${error.code || 'unknown error'}).`;
+                $('login-message').classList.remove('hidden');
+            }
+        });
         $('signout').addEventListener('click', () => signOut(auth)); $('close-drawer').addEventListener('click', closeDrawer); $('drawer').addEventListener('click', (event) => { if (event.target === $('drawer')) closeDrawer(); }); $('drawer-content').addEventListener('click', (event) => { if (event.target.id === 'save-detail') saveDetail(); if (event.target.id === 'delete-order') deleteOrder(); });
         document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.nav-button').forEach((item) => item.classList.toggle('active', item === button)); $('orders-view').classList.toggle('hidden', button.dataset.view !== 'orders'); $('appointments-view').classList.toggle('hidden', button.dataset.view !== 'appointments'); $('account-view').classList.toggle('hidden', button.dataset.view !== 'account'); }));
         document.querySelectorAll('.nav-button').forEach((button) => { button.classList.add('hover:bg-white'); }); $('order-search').addEventListener('input', renderOrders); $('order-filter').addEventListener('change', renderOrders); $('appointment-filter').addEventListener('change', renderAppointments); $('account-form').addEventListener('submit', createAccountDocument); $('accounts-list').addEventListener('click', (event) => { const copyButton = event.target.closest('[data-copy-account]'); const printButton = event.target.closest('[data-print-account]'); if (copyButton) copyAccountLink(copyButton.dataset.copyAccount); if (printButton) printAccount(printButton.dataset.printAccount); }); $('orders-list').addEventListener('click', (event) => { const button = event.target.closest('[data-order-id]'); if (button) openDrawer('order', button.dataset.orderId); }); $('appointments-list').addEventListener('click', (event) => { const button = event.target.closest('[data-appointment-id]'); if (button) openDrawer('appointment', button.dataset.appointmentId); });
