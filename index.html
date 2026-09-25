@@ -74,7 +74,34 @@
         async function createAccountDocument(event) { event.preventDefault(); const itemLines = $('account-items').value.split('\n').map((line) => line.trim()).filter(Boolean); const lineItems = itemLines.map((line) => { const [description, amount] = line.split('|').map((part) => part.trim()); return { description, amount: Number((amount || '').replace(/,/g, '')) }; }); if (!lineItems.length || lineItems.some((item) => !item.description || !Number.isFinite(item.amount) || item.amount < 0)) { showToast('Use one valid Description | Amount line per item.'); return; } const total = lineItems.reduce((sum, item) => sum + item.amount, 0); const button = $('account-form').querySelector('button'); button.disabled = true; button.textContent = 'Creating...'; try { const accessToken = crypto.randomUUID(); await setDoc(doc(db, 'accounts', accessToken), { documentType: $('account-type').value, documentNumber: `RS-${$('account-type').value === 'Invoice' ? 'INV' : 'RCT'}-${new Date().getFullYear()}-${accessToken.slice(0, 6).toUpperCase()}`, clientName: $('account-client-name').value.trim(), clientEmail: $('account-client-email').value.trim().toLowerCase(), orderNumber: $('account-order-number').value.trim().toUpperCase(), lineItems, total, currency: $('account-currency').value.trim().toUpperCase() || 'NGN', notes: $('account-notes').value.trim(), accessToken, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || '', sentAt: null }); $('account-form').reset(); $('account-currency').value = 'NGN'; showToast('Document created. Copy the client link to send it.'); } catch (error) { showToast('Could not create document. Check Firestore rules.'); console.error(error); } finally { button.disabled = false; button.textContent = 'Create document'; } }
         async function copyAccountLink(id) { const account = state.accounts.find((item) => item.id === id); if (!account) return; const link = accountLink(account); try { await navigator.clipboard.writeText(link); await updateDoc(doc(db, 'accounts', id), { sentAt: serverTimestamp() }); showToast('Client link copied. Send it to the client.'); } catch (error) { window.prompt('Copy this client link:', link); } }
         function printAccount(id) { const account = state.accounts.find((item) => item.id === id); if (account) window.open(accountLink(account), '_blank', 'noopener'); }
-        function getEstimatedCompletion(record) { if (!record) return ''; return record.estimatedCompletion || record.estimatedTime || record.eta || record.completionTime || ''; }
+        function formatEstimatedCompletion(value) {
+            if (!value) return '';
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if (!trimmed) return '';
+                const parsed = new Date(trimmed);
+                if (!Number.isNaN(parsed.getTime())) {
+                    return parsed.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+                }
+                return trimmed;
+            }
+            let date;
+            if (typeof value.toDate === 'function') {
+                date = value.toDate();
+            } else if (value instanceof Date) {
+                date = value;
+            } else if (typeof value === 'number') {
+                date = new Date(value);
+            } else if (typeof value === 'object' && value !== null && typeof value.seconds === 'number') {
+                date = new Date((value.seconds * 1000) + ((value.nanoseconds || 0) / 1000000));
+            }
+            if (!date || Number.isNaN(date.getTime())) return typeof value === 'string' ? value : '';
+            return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+        }
+        function getEstimatedCompletion(record) {
+            if (!record) return '';
+            return formatEstimatedCompletion(record.estimatedCompletionAt ?? record.estimatedCompletionDate ?? record.estimatedCompletion ?? record.estimatedTime ?? record.eta ?? null);
+        }
         function renderOrders() { const search = $('order-search').value.trim().toLowerCase(); const filter = $('order-filter').value; const records = state.orders.filter((order) => (filter === 'All' || order.status === filter) && `${order.customerName} ${order.customerEmail} ${order.orderNumber} ${order.garment}`.toLowerCase().includes(search)); $('orders-list').innerHTML = records.length ? records.map((order) => {
             const etaValue = getEstimatedCompletion(order);
             return `<button data-order-id="${escapeHtml(order.id)}" class="border border-line bg-white p-5 text-left transition hover:border-ink"><div class="flex items-start justify-between gap-3"><div><p class="text-[9px] uppercase tracking-[0.2em] text-stone-500">${escapeHtml(order.orderNumber || 'Legacy order')}</p><h3 class="mt-2 font-serif text-2xl">${escapeHtml(order.customerName || 'Unnamed client')}</h3><p class="mt-1 text-xs text-stone-500">${escapeHtml(order.garment)} / ${escapeHtml(order.occasion)}</p><p class="mt-2 text-[9px] uppercase tracking-[0.14em] text-stone-500">${etaValue ? `ETA: ${escapeHtml(etaValue)}` : 'ETA pending'}</p></div><span class="border border-line px-2 py-1 text-[9px] uppercase tracking-[0.14em]">${escapeHtml(order.status || 'Received')}</span></div><div class="mt-5 flex justify-between border-t border-line pt-3 text-[10px] text-stone-500"><span>${escapeHtml(dateText(order.createdAt))}</span><span class="text-ink">View request &rarr;</span></div></button>`;
@@ -85,7 +112,17 @@
         function closeDrawer() { $('drawer').classList.add('pointer-events-none', 'opacity-0'); $('drawer-panel').classList.add('translate-x-full'); }
         async function deleteOrder() { const record = state.record; if (state.type !== 'order' || !record) return; if (!window.confirm(`Delete order ${record.orderNumber || 'this order'} permanently?`)) return; try { await deleteDoc(doc(db, 'orders', record.id)); closeDrawer(); showToast('Order deleted.'); } catch (error) { showToast('Could not delete. Check Firestore rules.'); console.error(error); } }
         async function deleteAppointment() { const record = state.record; if (state.type !== 'appointment' || !record) return; if (!window.confirm('Delete this appointment permanently?')) return; try { await deleteDoc(doc(db, 'appointments', record.id)); closeDrawer(); showToast('Appointment deleted.'); } catch (error) { showToast('Could not delete. Check Firestore rules.'); console.error(error); } }
-        async function saveDetail() { const record = state.record; const updates = { status: $('detail-status').value, updatedAt: new Date() }; if (state.type === 'order') { const estimatedCompletion = $('detail-estimated-completion')?.value.trim() || ''; updates.deliveryStatus = $('detail-delivery').value.trim(); updates.estimatedCompletion = estimatedCompletion; updates.estimatedTime = estimatedCompletion; updates.eta = estimatedCompletion; updates.adminMessage = $('detail-message').value.trim(); } else updates.adminReply = $('detail-message').value.trim(); try { await updateDoc(doc(db, state.type === 'order' ? 'orders' : 'appointments', record.id), updates); closeDrawer(); showToast('Update saved.'); } catch (error) { showToast('Could not save. Check Firestore rules.'); console.error(error); } }
+        async function saveDetail() { const record = state.record; const updates = { status: $('detail-status').value, updatedAt: new Date() }; if (state.type === 'order') {
+            const estimatedCompletionValue = $('detail-estimated-completion')?.value.trim() || '';
+            const estimatedCompletionDate = estimatedCompletionValue ? new Date(estimatedCompletionValue) : null;
+            const isValidDate = !!estimatedCompletionDate && !Number.isNaN(estimatedCompletionDate.getTime());
+            updates.deliveryStatus = $('detail-delivery').value.trim();
+            updates.estimatedCompletionAt = isValidDate ? estimatedCompletionDate : null;
+            updates.estimatedCompletion = isValidDate ? estimatedCompletionDate.toISOString() : (estimatedCompletionValue || null);
+            updates.estimatedTime = estimatedCompletionValue || '';
+            updates.eta = estimatedCompletionValue || '';
+            updates.adminMessage = $('detail-message').value.trim();
+        } else updates.adminReply = $('detail-message').value.trim(); try { await updateDoc(doc(db, state.type === 'order' ? 'orders' : 'appointments', record.id), updates); closeDrawer(); showToast('Update saved.'); } catch (error) { showToast('Could not save. Check Firestore rules.'); console.error(error); } }
 
         $('login-form').addEventListener('submit', async (event) => {
             event.preventDefault();
