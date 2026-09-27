@@ -1,0 +1,702 @@
+:root {
+  --ink: #161616;
+  --paper: #f7f6f2;
+  --line: #ddd9d0;
+  --clay: #b86f52;
+  --moss: #4f6656;
+  --white: #ffffff;
+  --off-white: #ece9e2;
+  --stone-500: #6b7280;
+  --red-200: #fecaca;
+  --red-50: #fef2f2;
+  --red-700: #b91c1c;
+  --black-80: rgba(0, 0, 0, 0.8);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#login-view {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.25rem;
+}
+
+#login-form {
+  width: 100%;
+  max-width: 26rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 2rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+#login-form p,
+#login-form a,
+#login-form input,
+#login-form button,
+#login-form label,
+#login-form h1 {
+  letter-spacing: 0.02em;
+}
+
+#login-form > p:first-of-type,
+#admin-view aside p:first-of-type,
+#drawer-kicker,
+#drawer-title,
+#admin-view nav .nav-button,
+#admin-view main .eyebrow,
+#orders-view .eyebrow,
+#appointments-view .eyebrow,
+#account-view .eyebrow,
+#account-form label,
+#orders-list button p:first-of-type,
+#appointments-list button p:first-of-type {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+#login-form h1,
+#admin-view main h1,
+#admin-view main h2,
+#drawer-title {
+  font-family: Georgia, serif;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+#login-form h1 {
+  margin-top: 0.75rem;
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  line-height: 1.1;
+}
+
+#login-form .lead {
+  margin-top: 1rem;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--stone-500);
+}
+
+#login-email,
+#login-password,
+#account-client-name,
+#account-client-email,
+#account-order-number,
+#account-currency,
+#account-items,
+#account-notes,
+#order-search,
+#order-filter,
+#appointment-filter,
+#detail-delivery,
+#detail-message,
+#detail-status,
+#detail-estimated-completion,
+#detail-eta {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 0.75rem 0.9rem;
+  font-size: 12px;
+  color: var(--ink);
+  outline: none;
+}
+
+#login-email:focus,
+#login-password:focus,
+#account-client-name:focus,
+#account-client-email:focus,
+#account-order-number:focus,
+#account-currency:focus,
+#account-items:focus,
+#account-notes:focus,
+#order-search:focus,
+#order-filter:focus,
+#appointment-filter:focus,
+#detail-delivery:focus,
+#detail-message:focus,
+#detail-status:focus,
+#detail-estimated-completion:focus,
+#detail-eta:focus {
+  border-color: var(--ink);
+}
+
+#login-form button,
+#signout,
+.nav-button,
+#account-form button,
+#delete-order,
+#delete-appointment,
+#close-drawer,
+#drawer-content button,
+#drawer-content a,
+#print-button,
+#download-button {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+#login-form button,
+#account-form button,
+#delete-order,
+#delete-appointment,
+#print-button,
+#download-button {
+  display: inline-block;
+  width: 100%;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  padding: 0.9rem 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 10px;
+}
+
+#login-form button:hover,
+#account-form button:hover,
+#print-button:hover,
+#download-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+#login-message {
+  margin-top: 1rem;
+  display: none;
+  border: 1px solid var(--red-200);
+  background: var(--red-50);
+  padding: 0.75rem;
+  font-size: 11px;
+  color: var(--red-700);
+}
+
+#login-message.visible {
+  display: block;
+}
+
+#login-view a {
+  display: block;
+  margin-top: 1.75rem;
+  color: var(--stone-500);
+  letter-spacing: 0.18em;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+#login-view a:hover {
+  color: var(--ink);
+}
+
+#admin-view {
+  display: none;
+  min-height: 100vh;
+}
+
+#admin-view.visible {
+  display: block;
+}
+
+#admin-view .layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+}
+
+#admin-view aside {
+  background: var(--off-white);
+  border-right: 1px solid var(--line);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+#admin-view aside .brand,
+#admin-view main .eyebrow,
+#orders-view .eyebrow,
+#appointments-view .eyebrow,
+#account-view .eyebrow {
+  color: var(--stone-500);
+}
+
+#admin-view nav {
+  margin-top: 3rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.nav-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  text-align: left;
+}
+
+.nav-button.active,
+.nav-button:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+#admin-email {
+  word-break: break-all;
+  font-size: 9px;
+  color: var(--stone-500);
+}
+
+#signout {
+  margin-top: 1rem;
+  display: inline-block;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--stone-500);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  text-align: left;
+}
+
+#signout:hover {
+  color: var(--ink);
+}
+
+#admin-view main {
+  min-width: 0;
+  padding: 1.25rem 1.25rem 2rem;
+}
+
+#admin-view main > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.75rem;
+  align-items: end;
+}
+
+#admin-view main h1 {
+  margin-top: 0.5rem;
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-weight: 300;
+}
+
+#admin-view main > header > p:last-child {
+  color: var(--moss);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+#stats-grid {
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+#stats-grid > div,
+#orders-list > * ,
+#appointments-list > *,
+#accounts-list > *,
+#drawer-content > * {
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+#stats-grid > div {
+  padding: 1rem;
+}
+
+#stats-grid p {
+  margin: 0;
+}
+
+#stats-grid .stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--stone-500);
+}
+
+#stats-grid .stat-value {
+  margin-top: 0.5rem;
+  font-family: Georgia, serif;
+  font-size: 2rem;
+}
+
+#orders-view,
+#appointments-view,
+#account-view {
+  margin-top: 2.5rem;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.view-header h2 {
+  margin-top: 0.25rem;
+  font-family: Georgia, serif;
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  font-weight: 300;
+}
+
+#order-search,
+#order-filter,
+#appointment-filter {
+  max-width: 100%;
+}
+
+#order-search {
+  width: 100%;
+  max-width: 14rem;
+}
+
+#orders-list,
+#appointments-list,
+#accounts-list {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+#orders-list button,
+#appointments-list button {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 1.25rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+#orders-list button:hover,
+#appointments-list button:hover,
+#accounts-list article:hover {
+  border-color: var(--ink);
+}
+
+#orders-list button .summary,
+#appointments-list button .summary,
+#accounts-list article .summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+#orders-list button h3,
+#appointments-list button h3,
+#accounts-list article h3 {
+  margin: 0.45rem 0 0;
+  font-family: Georgia, serif;
+  font-size: 2rem;
+  font-weight: 300;
+}
+
+#orders-list button .muted,
+#appointments-list button .muted,
+#accounts-list article .muted,
+#account-view p,
+#drawer-content p,
+#drawer-content label,
+#drawer-content textarea,
+#drawer-content input,
+#drawer-content select {
+  color: var(--stone-500);
+  font-size: 12px;
+}
+
+#account-view {
+  max-width: 100%;
+}
+
+#account-form {
+  margin-top: 1.5rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 1.25rem 1.5rem;
+}
+
+#account-form .grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+#account-form .full {
+  grid-column: 1 / -1;
+}
+
+#account-form label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  color: var(--stone-500);
+}
+
+#account-form label .helper {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 11px;
+  color: rgba(107, 114, 128, 0.9);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+#account-form textarea,
+#account-form input,
+#account-form select {
+  margin-top: 0.5rem;
+}
+
+#accounts-list article {
+  padding: 1.25rem;
+}
+
+#accounts-list article .meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+#accounts-list article .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+#accounts-list article .tag,
+#accounts-list article a,
+#accounts-list article button,
+#drawer-content button,
+#drawer-content a,
+#drawer-content .save-button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  padding: 0.65rem 0.85rem;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+#accounts-list article .tag.primary,
+#accounts-list article a,
+#accounts-list article button,
+#drawer-content .save-button {
+  border-color: var(--ink);
+}
+
+#accounts-list article .tag.primary {
+  background: var(--ink);
+  color: #fff;
+}
+
+#drawer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 20;
+}
+
+#drawer.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#drawer-panel {
+  width: min(100%, 42rem);
+  height: 100%;
+  background: #fff;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+
+#drawer.open #drawer-panel {
+  transform: translateX(0);
+}
+
+#drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+#close-drawer {
+  background: transparent;
+  border: 0;
+  color: var(--stone-500);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+#drawer-content {
+  margin-top: 2rem;
+}
+
+#drawer-content .field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+#drawer-content .field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+#drawer-content .field label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 10px;
+  margin-bottom: 0.5rem;
+}
+
+#drawer-content .field textarea,
+#drawer-content .field input,
+#drawer-content .field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 0.75rem 0.9rem;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+#drawer-content .meta-box {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 1rem 0;
+  margin: 1rem 0;
+}
+
+#drawer-content .meta-box .grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+#delete-order,
+#delete-appointment {
+  width: 100%;
+  border: 1px solid #f3b7b7;
+  background: #fff;
+  color: var(--red-700);
+  padding: 0.9rem 1rem;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+#delete-order:hover,
+#delete-appointment:hover {
+  background: var(--red-700);
+  color: #fff;
+}
+
+#toast {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  background: var(--ink);
+  color: #fff;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ink);
+  font-size: 12px;
+  display: none;
+  z-index: 30;
+}
+
+#toast.visible {
+  display: block;
+}
+
+@media (max-width: 1023px) {
+  #admin-view .layout,
+  #stats-grid,
+  #orders-list,
+  #appointments-list,
+  #accounts-list,
+  #account-form .grid,
+  #drawer-content .field-grid,
+  #drawer-content .meta-box .grid {
+    grid-template-columns: 1fr;
+  }
+
+  #admin-view aside {
+    min-height: auto;
+  }
+
+  #admin-view main > header,
+  .view-header {
+    display: block;
+  }
+}
+
+@media (min-width: 1024px) {
+  #admin-view.visible {
+    display: block;
+  }
+}
