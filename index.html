@@ -3,90 +3,562 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atelier Admin | REMAGSTYLE</title>
+    <meta name="theme-color" content="#f7f6f2">
+    <title>Workroom | REMAGSTYLE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { theme: { extend: { colors: { ink: '#161616', paper: '#F7F6F2', line: '#DDD9D0', clay: '#B86F52', moss: '#4F6656' }, fontFamily: { serif: ['Georgia', 'serif'], sans: ['Arial', 'sans-serif'] } } } };
     </script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        button, input, select, textarea { font: inherit; }
+        .nav-button[aria-current="page"] { background: #161616; color: white; }
+        .nav-button:not([aria-current="page"]):hover { background: white; }
+        .focus-ring:focus-visible { outline: 2px solid #4F6656; outline-offset: 3px; }
+        @media (prefers-reduced-motion: no-preference) {
+            .enter { animation: enter 260ms ease-out both; }
+            @keyframes enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-paper text-ink">
-    <div id="login-view" class="flex min-h-screen items-center justify-center px-5 py-12">
+    <main id="login-view" class="flex min-h-screen items-center justify-center px-5 py-12">
         <form id="login-form" class="w-full max-w-md border border-line bg-white p-8 shadow-sm">
-            <p class="text-[10px] uppercase tracking-[0.24em] text-stone-500">REMAGSTYLE</p>
-            <h1 class="mt-3 font-serif text-5xl font-light">Atelier admin</h1>
-            <p class="mt-4 text-xs leading-6 text-stone-500">Sign in with the approved Firebase administrator account.</p>
+            <p class="text-[10px] uppercase tracking-[0.24em] text-stone-500">REMAGSTYLE / PRIVATE</p>
+            <h1 class="mt-3 font-serif text-5xl font-light">The workroom</h1>
+            <p class="mt-4 text-xs leading-6 text-stone-500">Sign in with your approved administrator account.</p>
             <div class="mt-8 space-y-3">
-                <input id="login-email" type="email" required autocomplete="username" placeholder="Admin email" class="w-full border border-line bg-paper px-4 py-3 text-xs outline-none focus:border-ink">
-                <input id="login-password" type="password" required autocomplete="current-password" placeholder="Password" class="w-full border border-line bg-paper px-4 py-3 text-xs outline-none focus:border-ink">
+                <input id="login-email" type="email" required autocomplete="username" placeholder="Admin email" aria-label="Admin email" class="w-full border border-line bg-paper px-4 py-3 text-xs outline-none focus:border-ink">
+                <input id="login-password" type="password" required autocomplete="current-password" placeholder="Password" aria-label="Password" class="w-full border border-line bg-paper px-4 py-3 text-xs outline-none focus:border-ink">
                 <button class="w-full bg-ink py-3.5 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-black/80">Enter workspace</button>
             </div>
-            <p id="login-message" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-[11px] text-red-700"></p>
-            <a href="../index.html" class="mt-7 block text-[10px] uppercase tracking-[0.18em] text-stone-500 hover:text-ink">Back to site</a>
+            <p id="login-message" role="alert" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-[11px] text-red-700"></p>
         </form>
-    </div>
+    </main>
 
     <div id="admin-view" class="hidden min-h-screen lg:grid lg:grid-cols-[230px_minmax(0,1fr)]">
-        <aside class="border-r border-line bg-[#ECE9E2] p-5 lg:flex lg:min-h-screen lg:flex-col">
-            <div><p class="text-[10px] uppercase tracking-[0.2em]">REMAGSTYLE</p><p class="mt-1 text-[9px] uppercase tracking-[0.16em] text-stone-500">Atelier admin</p></div>
-            <nav class="mt-12 space-y-2">
-                <button data-view="orders" class="nav-button active flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Orders</span><span id="order-count">0</span></button>
-                <button data-view="appointments" class="nav-button flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em] hover:bg-white"><span>Appointments</span><span id="appointment-count">0</span></button>
-                <button data-view="account" class="nav-button flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em] hover:bg-white"><span>Account</span><span id="account-count">0</span></button>
+        <button id="mobile-menu-backdrop" aria-label="Close navigation menu" class="fixed inset-0 z-30 hidden bg-black/30 lg:hidden"></button>
+        <aside id="admin-sidebar" aria-label="Admin navigation" class="fixed inset-y-0 left-0 z-40 flex h-screen w-72 max-w-[85vw] -translate-x-full flex-col border-r border-line bg-[#ECE9E2] p-5 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:h-screen lg:w-auto lg:max-w-none lg:translate-x-0 lg:shadow-none">
+            <div class="flex items-start justify-between">
+                <div>
+                <p class="text-[10px] uppercase tracking-[0.2em]">REMAGSTYLE</p>
+                <p class="mt-1 text-[9px] uppercase tracking-[0.16em] text-stone-500">Atelier admin</p>
+                </div>
+                <button id="mobile-menu-close" aria-label="Close navigation menu" class="focus-ring px-2 text-2xl leading-none text-stone-500 lg:hidden">&times;</button>
+            </div>
+            <nav id="collection-nav" aria-label="Collections" class="mt-10 space-y-1">
+                <button data-collection="orders" aria-current="page" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Orders</span><span data-count="orders">0</span></button>
+                <button data-collection="appointments" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Appointments</span><span data-count="appointments">0</span></button>
+                <button data-collection="accounts" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Accounts</span><span data-count="accounts">0</span></button>
+                <button data-collection="users" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Users</span><span data-count="users">0</span></button>
             </nav>
-            <div class="mt-auto pt-10"><p id="admin-email" class="break-all text-[9px] text-stone-500"></p><button id="signout" class="mt-4 text-left text-[10px] uppercase tracking-[0.16em] text-stone-500 hover:text-ink">Sign out</button></div>
+            <div class="mt-auto border-t border-line pt-5">
+                <p id="admin-email" class="break-all text-[9px] text-stone-500"></p>
+                <button id="signout" class="focus-ring mt-4 text-left text-[10px] uppercase tracking-[0.16em] text-stone-500 hover:text-ink">Sign out</button>
+            </div>
         </aside>
 
-        <main class="min-w-0 p-5 sm:p-8 lg:p-12">
-            <header class="flex flex-col justify-between gap-5 border-b border-line pb-7 sm:flex-row sm:items-end"><div><p class="text-[10px] uppercase tracking-[0.24em] text-stone-500">Private client operations</p><h1 class="mt-2 font-serif text-5xl font-light">The workroom</h1></div><p class="text-[10px] uppercase tracking-[0.16em] text-moss">Admin access verified</p></header>
-            <section class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4"><div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Orders</p><p id="stat-orders" class="mt-2 font-serif text-3xl">0</p></div><div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">New orders</p><p id="stat-new-orders" class="mt-2 font-serif text-3xl text-clay">0</p></div><div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Appointments</p><p id="stat-appointments" class="mt-2 font-serif text-3xl">0</p></div><div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">New requests</p><p id="stat-new-appointments" class="mt-2 font-serif text-3xl text-clay">0</p></div></section>
+        <section class="min-w-0 p-5 sm:p-8 lg:p-12">
+            <header class="flex flex-col justify-between gap-5 border-b border-line pb-7 sm:flex-row sm:items-end">
+                <div class="flex items-start gap-3">
+                    <button id="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="admin-sidebar" aria-expanded="false" class="focus-ring mt-1 flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1.5 border border-line bg-white lg:hidden">
+                        <span class="h-px w-4 bg-ink"></span><span class="h-px w-4 bg-ink"></span><span class="h-px w-4 bg-ink"></span>
+                    </button>
+                    <div>
+                    <p id="view-kicker" class="text-[10px] uppercase tracking-[0.24em] text-stone-500">Client operations</p>
+                    <h1 id="view-title" class="mt-2 font-serif text-5xl font-light">Orders</h1>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <p class="text-[10px] uppercase tracking-[0.16em] text-moss">Admin access verified</p>
+                    <button id="create-account" class="hidden focus-ring bg-ink px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-white hover:bg-black/80">New document</button>
+                </div>
+            </header>
 
-            <section id="orders-view" class="mt-10"><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p class="text-[10px] uppercase tracking-[0.22em] text-stone-500">Incoming work</p><h2 class="mt-1 font-serif text-3xl font-light">All orders</h2></div><div class="flex flex-wrap gap-2"><input id="order-search" type="search" placeholder="Search client or order" class="w-full border border-line bg-white px-3 py-2.5 text-xs outline-none focus:border-ink sm:w-56"><select id="order-filter" class="border border-line bg-white px-3 py-2.5 text-xs outline-none"><option>All</option><option>Received</option><option>Reviewing</option><option>In progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select></div></div><div id="orders-list" class="mt-5 grid gap-3 xl:grid-cols-2"></div></section>
-            <section id="appointments-view" class="mt-10 hidden"><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p class="text-[10px] uppercase tracking-[0.22em] text-stone-500">Calendar requests</p><h2 class="mt-1 font-serif text-3xl font-light">Appointments</h2></div><select id="appointment-filter" class="border border-line bg-white px-3 py-2.5 text-xs outline-none"><option>All</option><option>New</option><option>Contacted</option><option>Confirmed</option><option>Completed</option><option>Declined</option></select></div><div id="appointments-list" class="mt-5 grid gap-3 xl:grid-cols-2"></div></section>
-            <section id="account-view" class="mt-10 hidden"><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p class="text-[10px] uppercase tracking-[0.22em] text-stone-500">Client billing</p><h2 class="mt-1 font-serif text-3xl font-light">Invoices & receipts</h2><p class="mt-2 max-w-xl text-xs leading-5 text-stone-500">Create a document, then copy its secure client link to send it through your website.</p></div></div><form id="account-form" class="mt-6 border border-line bg-white p-5 sm:p-7"><div class="grid gap-4 sm:grid-cols-2"><label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Document type<select id="account-type" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"><option value="Invoice">Invoice</option><option value="Payment Receipt">Payment Receipt</option></select></label><label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Client name<input id="account-client-name" required class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></label><label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Client email<input id="account-client-email" type="email" required class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></label><label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Order number<input id="account-order-number" placeholder="RS-2026-XXXXXXXX" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs uppercase"></label><label class="text-[10px] uppercase tracking-[0.16em] text-stone-500 sm:col-span-2">Line items <span class="normal-case tracking-normal text-stone-400">one per line: Description | Amount</span><textarea id="account-items" required rows="4" placeholder="Bespoke suit | 150000&#10;Delivery | 5000" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></textarea></label><label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Currency<input id="account-currency" value="NGN" maxlength="3" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs uppercase"></label><label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Notes<textarea id="account-notes" rows="2" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></textarea></label></div><button class="mt-5 bg-ink px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-black/80">Create document</button></form><div id="accounts-list" class="mt-6 grid gap-3 xl:grid-cols-2"></div></section>
-        </main>
+            <section class="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Collection totals">
+                <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Orders</p><p data-stat="orders" class="mt-2 font-serif text-3xl">0</p></div>
+                <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Appointments</p><p data-stat="appointments" class="mt-2 font-serif text-3xl">0</p></div>
+                <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Accounts</p><p data-stat="accounts" class="mt-2 font-serif text-3xl">0</p></div>
+                <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Users</p><p data-stat="users" class="mt-2 font-serif text-3xl">0</p></div>
+            </section>
+
+            <div class="mt-9 flex flex-col justify-between gap-4 border-b border-line pb-4 sm:flex-row sm:items-end">
+                <div>
+                    <p id="collection-kicker" class="text-[10px] uppercase tracking-[0.2em] text-stone-500">Incoming work</p>
+                    <h2 id="collection-title" class="mt-1 font-serif text-3xl font-light">All orders</h2>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <input id="record-search" type="search" placeholder="Search records" aria-label="Search records" class="w-full border border-line bg-white px-3 py-2.5 text-xs outline-none focus:border-ink sm:w-56">
+                    <select id="status-filter" aria-label="Filter by status" class="hidden border border-line bg-white px-3 py-2.5 text-xs outline-none"></select>
+                </div>
+            </div>
+            <p id="load-error" role="status" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-xs text-red-700"></p>
+            <div id="records-list" class="mt-5 grid gap-3 xl:grid-cols-2" aria-live="polite"></div>
+        </section>
     </div>
 
-    <div id="drawer" class="pointer-events-none fixed inset-0 z-20 flex justify-end bg-black/20 opacity-0 transition-opacity"><div id="drawer-panel" class="h-full w-full max-w-xl translate-x-full overflow-y-auto bg-white p-6 transition-transform sm:p-9"><div class="flex items-start justify-between"><div><p id="drawer-kicker" class="text-[10px] uppercase tracking-[0.2em] text-stone-500"></p><h2 id="drawer-title" class="mt-2 font-serif text-4xl font-light"></h2></div><button id="close-drawer" class="p-2 text-2xl text-stone-500">&times;</button></div><div id="drawer-content" class="mt-8"></div><button id="delete-order" type="button" class="mt-8 hidden w-full border border-red-300 py-3.5 text-[10px] uppercase tracking-[0.2em] text-red-700 hover:bg-red-700 hover:text-white">Delete order</button><button id="delete-appointment" type="button" class="mt-8 hidden w-full border border-red-300 py-3.5 text-[10px] uppercase tracking-[0.2em] text-red-700 hover:bg-red-700 hover:text-white">Delete appointment</button></div></div>
-    <div id="toast" class="fixed bottom-5 right-5 z-30 hidden border border-ink bg-ink px-4 py-3 text-xs text-white"></div>
+    <div id="detail-dialog" class="fixed inset-0 z-20 hidden items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+        <section class="enter max-h-[92vh] w-full max-w-2xl overflow-y-auto border border-line bg-white p-5 shadow-xl sm:p-8">
+            <div class="flex items-start justify-between gap-4 border-b border-line pb-5">
+                <div><p id="detail-kicker" class="text-[10px] uppercase tracking-[0.2em] text-stone-500"></p><h2 id="detail-title" class="mt-2 break-words font-serif text-3xl font-light"></h2></div>
+                <button id="close-detail" aria-label="Close details" class="focus-ring px-2 text-2xl text-stone-500 hover:text-ink">&times;</button>
+            </div>
+            <div id="detail-content" class="mt-6"></div>
+            <div class="mt-6 flex flex-wrap justify-between gap-3 border-t border-line pt-5">
+                <button id="delete-record" class="focus-ring border border-red-300 px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-red-700 hover:bg-red-700 hover:text-white">Delete record</button>
+                <button id="close-detail-footer" class="focus-ring border border-line px-4 py-3 text-[10px] uppercase tracking-[0.16em] hover:border-ink">Close</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="account-dialog" class="fixed inset-0 z-20 hidden items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
+        <form id="account-form" class="enter max-h-[92vh] w-full max-w-2xl overflow-y-auto border border-line bg-white p-5 shadow-xl sm:p-8">
+            <div class="flex items-start justify-between gap-4 border-b border-line pb-5"><div><p class="text-[10px] uppercase tracking-[0.2em] text-stone-500">Client billing</p><h2 id="account-dialog-title" class="mt-2 font-serif text-3xl font-light">New invoice or receipt</h2></div><button id="close-account" type="button" aria-label="Close form" class="focus-ring px-2 text-2xl text-stone-500">&times;</button></div>
+            <div class="mt-6 grid gap-4 sm:grid-cols-2">
+                <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Document type<select id="account-type" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"><option value="Invoice">Invoice</option><option value="Payment Receipt">Payment Receipt</option></select></label>
+                <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Client name<input id="account-client-name" required class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></label>
+                <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Client email<input id="account-client-email" type="email" required class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></label>
+                <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Order number<input id="account-order-number" placeholder="Optional" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></label>
+                <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500 sm:col-span-2">Line items <span class="normal-case tracking-normal text-stone-400">One per line: Description | Amount</span><textarea id="account-items" required rows="4" placeholder="Bespoke suit | 150000&#10;Delivery | 5000" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></textarea></label>
+                <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Currency<input id="account-currency" value="NGN" maxlength="3" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs uppercase"></label>
+                <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Notes<textarea id="account-notes" rows="2" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></textarea></label>
+            </div>
+            <p id="account-form-error" role="alert" class="mt-4 hidden text-xs text-red-700"></p>
+            <div class="mt-6 flex justify-end gap-2"><button id="cancel-account" type="button" class="focus-ring border border-line px-4 py-3 text-[10px] uppercase tracking-[0.16em]">Cancel</button><button id="save-account" class="focus-ring bg-ink px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white hover:bg-black/80">Create document</button></div>
+        </form>
+    </div>
+    <div id="toast" role="status" class="fixed bottom-5 right-5 z-30 hidden max-w-sm border border-ink bg-ink px-4 py-3 text-xs text-white"></div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, setDoc, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
-        const ADMIN_UID = '8VRjJBdsEfO8PLXGdrwjB4Xf1vz1';
+        const ADMIN_UID = 'x1fOQ89476YB1e7RPxGsYlTNWKi1';
         const app = initializeApp({ apiKey: 'AIzaSyCzcxTLAUH83sQsia4dPg5py19YzRsmw0o', authDomain: 'remagstyle-43b41.firebaseapp.com', projectId: 'remagstyle-43b41', messagingSenderId: '145831201308', appId: '1:145831201308:web:489a014516356f73a72dd9' });
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const state = { orders: [], appointments: [], accounts: [], type: '', record: null };
+        const collections = {
+            orders: { label: 'Orders', kicker: 'Incoming work', searchable: ['orderNumber', 'customerName', 'customerEmail', 'garment', 'status'], statusOptions: ['Received', 'Reviewing', 'In progress', 'Ready', 'Delivered', 'Cancelled'], heading: (item) => item.customerName || 'Unnamed client', subheading: (item) => [item.orderNumber, item.garment, item.occasion].filter(Boolean).join(' / ') },
+            appointments: { label: 'Appointments', kicker: 'Client requests', searchable: ['customerName', 'customerEmail', 'customerPhone', 'message', 'status'], statusOptions: ['New', 'Contacted', 'Confirmed', 'Completed', 'Declined'], heading: (item) => item.customerName || 'Unnamed client', subheading: (item) => item.customerEmail || item.customerPhone || 'Appointment request' },
+            accounts: { label: 'Accounts', kicker: 'Invoices and receipts', searchable: ['documentNumber', 'documentType', 'clientName', 'clientEmail', 'orderNumber'], heading: (item) => item.clientName || 'Unnamed client', subheading: (item) => [item.documentNumber, item.documentType].filter(Boolean).join(' / ') },
+            users: { label: 'Users', kicker: 'Client profiles', searchable: ['name', 'displayName', 'email', 'uid'], heading: (item) => item.displayName || item.name || item.email || 'User profile', subheading: (item) => item.email || item.uid || item.id }
+        };
+        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [] };
         const $ = (id) => document.getElementById(id);
-        const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
-        const dateText = (value) => value?.toDate?.().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) || 'Just submitted';
-        const sortNewest = (records) => records.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+        const displayValue = (value) => value?.toDate?.().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) || (value instanceof Date ? value.toLocaleString() : String(value ?? ''));
+        const editorJson = (record) => JSON.stringify(record, function (key, value) { const original = this[key]; return original?.toDate ? { __firestoreTimestamp: original.toDate().toISOString() } : value; }, 2);
+        const parseEditorJson = (value) => JSON.parse(value, (key, item) => item && typeof item === 'object' && Object.keys(item).length === 1 && typeof item.__firestoreTimestamp === 'string' ? Timestamp.fromDate(new Date(item.__firestoreTimestamp)) : item);
 
-        function showToast(message) { $('toast').textContent = message; $('toast').classList.remove('hidden'); setTimeout(() => $('toast').classList.add('hidden'), 4500); }
-        function renderStats() { $('order-count').textContent = state.orders.length; $('appointment-count').textContent = state.appointments.length; $('stat-orders').textContent = state.orders.length; $('stat-new-orders').textContent = state.orders.filter((record) => record.status === 'Received').length; $('stat-appointments').textContent = state.appointments.length; $('stat-new-appointments').textContent = state.appointments.filter((record) => record.status === 'New').length; }
-        function money(value, currency) { return `${currency || 'NGN'} ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
-        function accountLink(account) { return new URL('../account.html', window.location.href).href + `?token=${encodeURIComponent(account.accessToken)}`; }
-        function renderAccounts() { $('account-count').textContent = state.accounts.length; $('accounts-list').innerHTML = state.accounts.length ? state.accounts.map((account) => `<article class="border border-line bg-white p-5"><div class="flex items-start justify-between gap-3"><div><p class="text-[9px] uppercase tracking-[0.2em] text-stone-500">${escapeHtml(account.documentType)} / ${escapeHtml(account.documentNumber)}</p><h3 class="mt-2 font-serif text-2xl">${escapeHtml(account.clientName)}</h3><p class="mt-1 text-xs text-stone-500">${escapeHtml(account.clientEmail)}${account.orderNumber ? ` / ${escapeHtml(account.orderNumber)}` : ''}</p></div><span class="border border-line px-2 py-1 text-[9px] uppercase tracking-[0.14em]">${escapeHtml(money(account.total, account.currency))}</span></div><div class="mt-5 flex flex-wrap gap-2 border-t border-line pt-3"><button data-copy-account="${escapeHtml(account.id)}" class="border border-ink px-3 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-ink hover:text-white">Copy client link</button><a href="${escapeHtml(accountLink(account))}" target="_blank" rel="noopener" class="border border-line px-3 py-2 text-[10px] uppercase tracking-[0.15em] hover:border-ink">Open / download</a><button data-print-account="${escapeHtml(account.id)}" class="border border-line px-3 py-2 text-[10px] uppercase tracking-[0.15em] hover:border-ink">Print / PDF</button></div></article>`).join('') : '<p class="border border-dashed border-line p-6 text-xs text-stone-500">No invoices or receipts have been created.</p>'; }
-        async function createAccountDocument(event) { event.preventDefault(); const itemLines = $('account-items').value.split('\n').map((line) => line.trim()).filter(Boolean); const lineItems = itemLines.map((line) => { const [description, amount] = line.split('|').map((part) => part.trim()); return { description, amount: Number((amount || '').replace(/,/g, '')) }; }); if (!lineItems.length || lineItems.some((item) => !item.description || !Number.isFinite(item.amount) || item.amount < 0)) { showToast('Use one valid Description | Amount line per item.'); return; } const total = lineItems.reduce((sum, item) => sum + item.amount, 0); const button = $('account-form').querySelector('button'); button.disabled = true; button.textContent = 'Creating...'; try { const accessToken = crypto.randomUUID(); await setDoc(doc(db, 'accounts', accessToken), { documentType: $('account-type').value, documentNumber: `RS-${$('account-type').value === 'Invoice' ? 'INV' : 'RCT'}-${new Date().getFullYear()}-${accessToken.slice(0, 6).toUpperCase()}`, clientName: $('account-client-name').value.trim(), clientEmail: $('account-client-email').value.trim().toLowerCase(), orderNumber: $('account-order-number').value.trim().toUpperCase(), lineItems, total, currency: $('account-currency').value.trim().toUpperCase() || 'NGN', notes: $('account-notes').value.trim(), accessToken, createdAt: serverTimestamp(), createdBy: auth.currentUser?.uid || '', sentAt: null }); $('account-form').reset(); $('account-currency').value = 'NGN'; showToast('Document created. Copy the client link to send it.'); } catch (error) { showToast('Could not create document. Check Firestore rules.'); console.error(error); } finally { button.disabled = false; button.textContent = 'Create document'; } }
-        async function copyAccountLink(id) { const account = state.accounts.find((item) => item.id === id); if (!account) return; const link = accountLink(account); try { await navigator.clipboard.writeText(link); await updateDoc(doc(db, 'accounts', id), { sentAt: serverTimestamp() }); showToast('Client link copied. Send it to the client.'); } catch (error) { window.prompt('Copy this client link:', link); } }
-        function printAccount(id) { const account = state.accounts.find((item) => item.id === id); if (account) window.open(accountLink(account), '_blank', 'noopener'); }
-        function renderOrders() { const search = $('order-search').value.trim().toLowerCase(); const filter = $('order-filter').value; const records = state.orders.filter((order) => (filter === 'All' || order.status === filter) && `${order.customerName} ${order.customerEmail} ${order.orderNumber} ${order.garment}`.toLowerCase().includes(search)); $('orders-list').innerHTML = records.length ? records.map((order) => `<button data-order-id="${escapeHtml(order.id)}" class="border border-line bg-white p-5 text-left transition hover:border-ink"><div class="flex items-start justify-between gap-3"><div><p class="text-[9px] uppercase tracking-[0.2em] text-stone-500">${escapeHtml(order.orderNumber || 'Legacy order')}</p><h3 class="mt-2 font-serif text-2xl">${escapeHtml(order.customerName || 'Unnamed client')}</h3><p class="mt-1 text-xs text-stone-500">${escapeHtml(order.garment)} / ${escapeHtml(order.occasion)}</p></div><span class="border border-line px-2 py-1 text-[9px] uppercase tracking-[0.14em]">${escapeHtml(order.status || 'Received')}</span></div><div class="mt-5 flex justify-between border-t border-line pt-3 text-[10px] text-stone-500"><span>${escapeHtml(dateText(order.createdAt))}</span><span class="text-ink">View request &rarr;</span></div></button>`).join('') : '<p class="border border-dashed border-line p-6 text-xs text-stone-500">No orders match this view.</p>'; }
-        function renderAppointments() { const filter = $('appointment-filter').value; const records = state.appointments.filter((appointment) => filter === 'All' || appointment.status === filter); $('appointments-list').innerHTML = records.length ? records.map((appointment) => `<button data-appointment-id="${escapeHtml(appointment.id)}" class="border border-line bg-white p-5 text-left transition hover:border-ink"><div class="flex items-start justify-between gap-3"><div><p class="text-[9px] uppercase tracking-[0.2em] text-stone-500">${escapeHtml(appointment.service)}</p><h3 class="mt-2 font-serif text-2xl">${escapeHtml(appointment.customerName)}</h3><p class="mt-1 text-xs text-stone-500">${escapeHtml(appointment.preferredDate)} at ${escapeHtml(appointment.preferredTime)}</p></div><span class="border border-line px-2 py-1 text-[9px] uppercase tracking-[0.14em]">${escapeHtml(appointment.status || 'New')}</span></div><div class="mt-5 flex justify-between border-t border-line pt-3 text-[10px] text-stone-500"><span>${escapeHtml(dateText(appointment.createdAt))}</span><span class="text-ink">Open request &rarr;</span></div></button>`).join('') : '<p class="border border-dashed border-line p-6 text-xs text-stone-500">No appointments match this view.</p>'; }
-        function measurementMarkup(measurements) { const entries = Object.entries(measurements || {}); return entries.length ? `<div class="grid grid-cols-2 gap-2">${entries.map(([key, value]) => `<div class="border border-line bg-paper p-3"><p class="text-[9px] uppercase tracking-[0.12em] text-stone-500">${escapeHtml(key.replace(/([A-Z])/g, ' $1'))}</p><p class="mt-1 text-sm">${escapeHtml(value)} cm</p></div>`).join('')}</div>` : '<p class="text-xs text-stone-500">No measurements were submitted.</p>'; }
-        function openDrawer(type, id) { const record = state[type === 'order' ? 'orders' : 'appointments'].find((item) => item.id === id); if (!record) return; state.type = type; state.record = record; $('drawer-kicker').textContent = type === 'order' ? record.orderNumber || 'Order request' : 'Appointment request'; $('drawer-title').textContent = record.customerName || 'Client request'; $('drawer-content').innerHTML = type === 'order' ? `<div class="space-y-7"><div class="grid grid-cols-2 gap-4 border-y border-line py-4 text-xs"><p class="text-stone-500">Email<br><span class="text-ink">${escapeHtml(record.customerEmail || 'Not provided')}</span></p><p class="text-stone-500">Phone<br><span class="text-ink">${escapeHtml(record.customerPhone || 'Not provided')}</span></p><p class="text-stone-500">Garment<br><span class="text-ink">${escapeHtml(record.garment)}</span></p><p class="text-stone-500">Submitted<br><span class="text-ink">${escapeHtml(dateText(record.createdAt))}</span></p></div><div><p class="text-[10px] uppercase tracking-[0.18em] text-stone-500">Design brief</p><p class="mt-2 whitespace-pre-wrap text-sm leading-6">${escapeHtml(record.designBrief || 'No brief supplied.')}</p></div><div><p class="text-[10px] uppercase tracking-[0.18em] text-stone-500">Measurements (cm)</p><div class="mt-3">${measurementMarkup(record.measurements)}</div></div><label class="block text-[10px] uppercase tracking-[0.18em] text-stone-500">Order status<select id="detail-status" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"><option>Received</option><option>Reviewing</option><option>In progress</option><option>Ready</option><option>Delivered</option><option>Cancelled</option></select></label><label class="block text-[10px] uppercase tracking-[0.18em] text-stone-500">Delivery status<input id="detail-delivery" value="${escapeHtml(record.deliveryStatus || '')}" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></label><label class="block text-[10px] uppercase tracking-[0.18em] text-stone-500">Message for client<textarea id="detail-message" rows="4" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs">${escapeHtml(record.adminMessage || '')}</textarea></label><button id="save-detail" class="w-full bg-ink py-3.5 text-[10px] uppercase tracking-[0.2em] text-white">Save order update</button></div>` : `<div class="space-y-7"><div class="grid grid-cols-2 gap-4 border-y border-line py-4 text-xs"><p class="text-stone-500">Email<br><span class="text-ink">${escapeHtml(record.customerEmail || 'Not provided')}</span></p><p class="text-stone-500">Phone<br><span class="text-ink">${escapeHtml(record.customerPhone || 'Not provided')}</span></p><p class="text-stone-500">Date<br><span class="text-ink">${escapeHtml(record.preferredDate)}</span></p><p class="text-stone-500">Time<br><span class="text-ink">${escapeHtml(record.preferredTime)}</span></p></div><p class="text-sm leading-6 whitespace-pre-wrap">${escapeHtml(record.message || 'No message supplied.')}</p><label class="block text-[10px] uppercase tracking-[0.18em] text-stone-500">Appointment status<select id="detail-status" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"><option>New</option><option>Contacted</option><option>Confirmed</option><option>Completed</option><option>Declined</option></select></label><label class="block text-[10px] uppercase tracking-[0.18em] text-stone-500">Reply to client<textarea id="detail-message" rows="5" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs">${escapeHtml(record.adminReply || '')}</textarea></label><button id="save-detail" class="w-full bg-ink py-3.5 text-[10px] uppercase tracking-[0.2em] text-white">Save appointment update</button></div>`; $('detail-status').value = record.status || (type === 'order' ? 'Received' : 'New'); $('drawer').classList.remove('pointer-events-none', 'opacity-0'); $('drawer-panel').classList.remove('translate-x-full'); }
-        function closeDrawer() { $('drawer').classList.add('pointer-events-none', 'opacity-0'); $('drawer-panel').classList.add('translate-x-full'); }
-        async function deleteOrder() { const record = state.record; if (state.type !== 'order' || !record) return; if (!window.confirm(`Delete order ${record.orderNumber || 'this order'} permanently?`)) return; try { await deleteDoc(doc(db, 'orders', record.id)); closeDrawer(); showToast('Order deleted.'); } catch (error) { showToast('Could not delete. Check Firestore rules.'); console.error(error); } }
-        async function deleteAppointment() { const record = state.record; if (state.type !== 'appointment' || !record) return; if (!window.confirm('Delete this appointment permanently?')) return; try { await deleteDoc(doc(db, 'appointments', record.id)); closeDrawer(); showToast('Appointment deleted.'); } catch (error) { showToast('Could not delete. Check Firestore rules.'); console.error(error); } }
-        async function saveDetail() { const record = state.record; const updates = { status: $('detail-status').value, updatedAt: new Date() }; if (state.type === 'order') { updates.deliveryStatus = $('detail-delivery').value.trim(); updates.adminMessage = $('detail-message').value.trim(); } else updates.adminReply = $('detail-message').value.trim(); try { await updateDoc(doc(db, state.type === 'order' ? 'orders' : 'appointments', record.id), updates); closeDrawer(); showToast('Update saved.'); } catch (error) { showToast('Could not save. Check Firestore rules.'); console.error(error); } }
+        function showToast(message) {
+            $('toast').textContent = message;
+            $('toast').classList.remove('hidden');
+            clearTimeout(showToast.timer);
+            showToast.timer = setTimeout(() => $('toast').classList.add('hidden'), 4000);
+        }
 
-        $('login-form').addEventListener('submit', async (event) => { event.preventDefault(); $('login-message').classList.add('hidden'); try { await signInWithEmailAndPassword(auth, $('login-email').value.trim().toLowerCase(), $('login-password').value); } catch (error) { $('login-message').textContent = `Sign-in failed (${error.code || 'unknown error'}).`; $('login-message').classList.remove('hidden'); } });
-        $('signout').addEventListener('click', () => signOut(auth)); $('close-drawer').addEventListener('click', closeDrawer); $('drawer').addEventListener('click', (event) => { if (event.target === $('drawer')) closeDrawer(); }); $('drawer-content').addEventListener('click', (event) => { if (event.target.id === 'save-detail') saveDetail(); if (event.target.id === 'delete-order') deleteOrder(); });
-        document.querySelectorAll('.nav-button').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.nav-button').forEach((item) => item.classList.toggle('active', item === button)); $('orders-view').classList.toggle('hidden', button.dataset.view !== 'orders'); $('appointments-view').classList.toggle('hidden', button.dataset.view !== 'appointments'); $('account-view').classList.toggle('hidden', button.dataset.view !== 'account'); }));
-        document.querySelectorAll('.nav-button').forEach((button) => { button.classList.add('hover:bg-white'); }); $('order-search').addEventListener('input', renderOrders); $('order-filter').addEventListener('change', renderOrders); $('appointment-filter').addEventListener('change', renderAppointments); $('account-form').addEventListener('submit', createAccountDocument); $('accounts-list').addEventListener('click', (event) => { const copyButton = event.target.closest('[data-copy-account]'); const printButton = event.target.closest('[data-print-account]'); if (copyButton) copyAccountLink(copyButton.dataset.copyAccount); if (printButton) printAccount(printButton.dataset.printAccount); }); $('orders-list').addEventListener('click', (event) => { const button = event.target.closest('[data-order-id]'); if (button) openDrawer('order', button.dataset.orderId); }); $('appointments-list').addEventListener('click', (event) => { const button = event.target.closest('[data-appointment-id]'); if (button) openDrawer('appointment', button.dataset.appointmentId); });
-        onAuthStateChanged(auth, (user) => { const approved = user?.uid === ADMIN_UID; $('login-view').classList.toggle('hidden', approved); $('admin-view').classList.toggle('hidden', !approved); if (!user) return; if (!approved) { signOut(auth); $('login-message').textContent = 'This Firebase account is not approved for the admin workspace.'; $('login-message').classList.remove('hidden'); return; } $('admin-email').textContent = user.email || ''; onSnapshot(collection(db, 'orders'), (snapshot) => { state.orders = sortNewest(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))); renderStats(); renderOrders(); }, () => showToast('Orders could not be loaded.')); onSnapshot(collection(db, 'appointments'), (snapshot) => { state.appointments = sortNewest(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))); renderStats(); renderAppointments(); }, () => showToast('Appointments could not be loaded.')); onSnapshot(collection(db, 'accounts'), (snapshot) => { state.accounts = sortNewest(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))); renderAccounts(); }, () => showToast('Account documents could not be loaded.')); });
-        $('delete-order').addEventListener('click', deleteOrder); $('delete-appointment').addEventListener('click', deleteAppointment); document.addEventListener('click', (event) => { if (event.target.closest('[data-order-id]')) { $('delete-order').classList.remove('hidden'); $('delete-appointment').classList.add('hidden'); } if (event.target.closest('[data-appointment-id]')) { $('delete-order').classList.add('hidden'); $('delete-appointment').classList.remove('hidden'); } });
+        function updateCounts() {
+            for (const name of Object.keys(collections)) {
+                document.querySelector(`[data-count="${name}"]`).textContent = state.records[name].length;
+                document.querySelector(`[data-stat="${name}"]`).textContent = state.records[name].length;
+            }
+        }
+
+        function renderLoadError() {
+            const error = state.errors[state.activeCollection];
+            $('load-error').textContent = error || '';
+            $('load-error').classList.toggle('hidden', !error);
+        }
+
+        function renderCollection() {
+            const name = state.activeCollection;
+            const config = collections[name];
+            const query = $('record-search').value.trim().toLowerCase();
+            const status = $('status-filter').value;
+            $('view-title').textContent = config.label;
+            $('collection-title').textContent = `All ${config.label.toLowerCase()}`;
+            $('collection-kicker').textContent = config.kicker;
+            $('create-account').classList.toggle('hidden', name !== 'accounts');
+            $('status-filter').classList.toggle('hidden', !config.statusOptions);
+            const records = state.records[name].filter((record) => {
+                const matchesText = [record.id, ...config.searchable.map((key) => record[key])].some((value) => String(value ?? '').toLowerCase().includes(query));
+                return matchesText && (!config.statusOptions || status === 'All' || (record.status || config.statusOptions[0]) === status);
+            });
+            $('records-list').innerHTML = records.length ? records.map((record) => {
+                const badge = record.status || (name === 'appointments' ? 'New' : '');
+                const date = record.createdAt ? displayValue(record.createdAt) : '';
+                const amount = name === 'accounts' && record.total != null ? `${escapeHtml(record.currency || 'NGN')} ${Number(record.total).toLocaleString()}` : name === 'orders' && record.paymentAmount != null ? `${escapeHtml(record.currency || 'NGN')} ${Number(record.paymentAmount).toLocaleString()}` : '';
+                const paymentState = String(record.paymentStatus || '').trim().toLowerCase();
+                const paymentConfirmed = ['success', 'successful', 'confirmed', 'paid'].includes(paymentState);
+                const footerEnd = name === 'orders'
+                    ? `<span class="flex shrink-0 items-center gap-2"><span class="text-sm font-medium text-ink">${amount || 'Payment amount not set'}</span><span class="border ${paymentConfirmed ? 'border-moss text-moss' : 'border-line text-stone-500'} px-2 py-1 text-[9px] uppercase tracking-[0.12em]">${paymentConfirmed ? 'Paid' : 'Payment pending'}</span></span>`
+                    : `<span class="shrink-0 text-ink">${amount || 'Open record'} &rarr;</span>`;
+                return `<article class="enter border border-line bg-white p-5 transition hover:border-ink"><button data-record-id="${escapeHtml(record.id)}" class="focus-ring w-full text-left"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="truncate text-[9px] uppercase tracking-[0.2em] text-stone-500">${escapeHtml(config.subheading(record))}</p><h3 class="mt-2 break-words font-serif text-2xl">${escapeHtml(config.heading(record))}</h3><p class="mt-1 break-words text-xs text-stone-500">${escapeHtml(record.customerEmail || record.clientEmail || record.customerPhone || record.id)}</p></div>${badge ? `<span class="shrink-0 border border-line px-2 py-1 text-[9px] uppercase tracking-[0.14em]">${escapeHtml(badge)}</span>` : ''}</div><div class="mt-5 flex justify-between gap-3 border-t border-line pt-3 text-[10px] text-stone-500"><span>${escapeHtml(date)}</span>${footerEnd}</div></button>${name === 'accounts' ? `<button data-copy-account="${escapeHtml(record.id)}" class="focus-ring mt-4 border border-line px-3 py-2 text-[10px] uppercase tracking-[0.15em] hover:border-ink">Copy client link</button>` : ''}</article>`;
+            }).join('') : `<p class="border border-dashed border-line p-6 text-xs text-stone-500">${state.records[name].length ? 'No records match this search.' : `No ${config.label.toLowerCase()} found.`}</p>`;
+            $('records-list').querySelectorAll('[data-record-id]').forEach((button) => {
+                button.type = 'button';
+                button.addEventListener('click', () => {
+                    try {
+                        openDetail(button.dataset.recordId);
+                    } catch (error) {
+                        console.error('Could not open record details.', error);
+                        showToast(`Could not open record details: ${error.message || error}`);
+                    }
+                });
+            });
+            renderLoadError();
+        }
+
+        function setActiveCollection(name, closeMenu = true) {
+            state.activeCollection = name;
+            document.querySelectorAll('.nav-button').forEach((button) => {
+                if (button.dataset.collection === name) button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            });
+            const statusFilter = $('status-filter');
+            const options = collections[name].statusOptions;
+            statusFilter.innerHTML = options ? ['All', ...options].map((value) => `<option>${escapeHtml(value)}</option>`).join('') : '';
+            $('record-search').value = '';
+            renderCollection();
+            if (closeMenu) closeMobileMenu();
+        }
+
+        function openMobileMenu() {
+            $('admin-sidebar').classList.remove('-translate-x-full');
+            $('mobile-menu-backdrop').classList.remove('hidden');
+            $('mobile-menu-toggle').setAttribute('aria-expanded', 'true');
+            $('mobile-menu-toggle').setAttribute('aria-label', 'Close navigation menu');
+            $('collection-nav').querySelector('[aria-current="page"]')?.focus();
+        }
+
+        function closeMobileMenu(restoreFocus = true) {
+            $('admin-sidebar').classList.add('-translate-x-full');
+            $('mobile-menu-backdrop').classList.add('hidden');
+            $('mobile-menu-toggle').setAttribute('aria-expanded', 'false');
+            $('mobile-menu-toggle').setAttribute('aria-label', 'Open navigation menu');
+            if (restoreFocus && window.matchMedia('(max-width: 1023px)').matches) $('mobile-menu-toggle').focus();
+        }
+
+        function openDetail(id) {
+            const record = state.records[state.activeCollection].find((item) => item.id === id);
+            if (!record) return;
+            state.selected = record;
+            const name = state.activeCollection;
+            const config = collections[name];
+            $('detail-kicker').textContent = `${config.label} / ${record.id}`;
+            $('detail-title').textContent = config.heading(record);
+            $('delete-record').textContent = name === 'users' ? 'Delete profile record' : `Delete ${name.slice(0, -1)}`;
+            $('detail-content').innerHTML = detailMarkup(name, record);
+            if (name === 'orders') addMeasurementsDisclosure(record);
+            if (name === 'orders') addPaymentAmountEditor(record);
+            if (name === 'orders' || name === 'appointments') $('edit-status').value = record.status || collections[name].statusOptions[0];
+            $('detail-dialog').classList.remove('hidden');
+            $('detail-dialog').classList.add('flex');
+            $('close-detail').focus();
+        }
+
+        function addMeasurementsDisclosure(record) {
+            const section = document.createElement('section');
+            section.className = 'border-y border-line py-4';
+            const button = document.createElement('button');
+            button.id = 'view-measurements';
+            button.type = 'button';
+            button.setAttribute('aria-expanded', 'false');
+            button.setAttribute('aria-controls', 'measurements-panel');
+            button.className = 'focus-ring text-[10px] uppercase tracking-[0.16em] text-ink';
+            button.textContent = 'View measurements';
+            const panel = document.createElement('div');
+            panel.id = 'measurements-panel';
+            panel.className = 'mt-4 hidden';
+            panel.innerHTML = measurementMarkup(record.measurements);
+            section.append(button, panel);
+            const detailContent = $('detail-content');
+            const statusLabel = $('edit-status')?.closest('label');
+            if (statusLabel) statusLabel.parentNode.insertBefore(section, statusLabel);
+            else detailContent.append(section);
+        }
+
+        function measurementMarkup(measurements) {
+            const entries = Object.entries(measurements || {});
+            if (!entries.length) return '<p class="text-xs text-stone-500">No measurements were submitted.</p>';
+            return `<div class="grid grid-cols-2 gap-2">${entries.map(([key, value]) => `<div class="border border-line bg-paper p-3"><p class="text-[9px] uppercase tracking-[0.12em] text-stone-500">${escapeHtml(key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' '))}</p><p class="mt-1 text-sm">${escapeHtml(value)} cm</p></div>`).join('')}</div>`;
+        }
+
+        function addPaymentAmountEditor(record) {
+            const fields = document.createElement('div');
+            fields.className = 'grid grid-cols-2 gap-3';
+            const amountLabel = document.createElement('label');
+            amountLabel.className = 'block text-[10px] uppercase tracking-[0.16em] text-stone-500';
+            amountLabel.textContent = 'Payment amount';
+            const input = document.createElement('input');
+            input.id = 'edit-payment-amount';
+            input.type = 'number';
+            input.min = '0';
+            input.step = '0.01';
+            input.required = true;
+            input.value = record.paymentAmount ?? '';
+            input.className = 'mt-2 w-full border border-line bg-paper px-3 py-3 text-xs';
+            amountLabel.append(input);
+
+            const currencyOptions = [
+                ['NGN', 'Nigerian naira'],
+                ['USD', 'US dollar'],
+                ['GBP', 'British pound'],
+                ['EUR', 'Euro'],
+                ['CAD', 'Canadian dollar'],
+                ['AUD', 'Australian dollar'],
+                ['GHS', 'Ghanaian cedi'],
+                ['ZAR', 'South African rand'],
+                ['KES', 'Kenyan shilling']
+            ];
+            const currencyLabel = document.createElement('label');
+            currencyLabel.className = 'block text-[10px] uppercase tracking-[0.16em] text-stone-500';
+            currencyLabel.textContent = 'Currency';
+            const currencySelect = document.createElement('select');
+            currencySelect.id = 'edit-payment-currency';
+            currencySelect.className = 'mt-2 w-full border border-line bg-paper px-3 py-3 text-xs';
+            const currentCurrency = record.currency || 'NGN';
+            const knownCurrencies = currencyOptions.map(([code]) => code);
+            const availableCurrencies = knownCurrencies.includes(currentCurrency)
+                ? currencyOptions
+                : [[currentCurrency, 'Current currency'], ...currencyOptions];
+            currencySelect.innerHTML = availableCurrencies.map(([code, label]) => `<option value="${escapeHtml(code)}">${escapeHtml(code)} - ${escapeHtml(label)}</option>`).join('');
+            currencySelect.value = currentCurrency;
+            currencyLabel.append(currencySelect);
+            fields.append(amountLabel, currencyLabel);
+            const saveButton = $('save-detail');
+            saveButton.parentNode.insertBefore(fields, saveButton);
+        }
+
+        function detailMarkup(name, record) {
+            if (name === 'orders') {
+                return `<div class="space-y-5"><div class="grid gap-3 border-y border-line py-4 text-xs sm:grid-cols-2"><p class="text-stone-500">Email<br><span class="break-all text-ink">${escapeHtml(record.customerEmail || 'Not provided')}</span></p><p class="text-stone-500">Phone<br><span class="text-ink">${escapeHtml(record.customerPhone || 'Not provided')}</span></p><p class="text-stone-500">Submitted<br><span class="text-ink">${escapeHtml(record.createdAt ? displayValue(record.createdAt) : 'Date unavailable')}</span></p><p class="text-stone-500">Order number<br><span class="text-ink">${escapeHtml(record.orderNumber || 'Not provided')}</span></p></div><div><p class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Design brief</p><p class="mt-2 whitespace-pre-wrap text-sm leading-6">${escapeHtml(record.designBrief || record.message || 'No brief supplied.')}</p></div><label class="block text-[10px] uppercase tracking-[0.16em] text-stone-500">Order status<select id="edit-status" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs">${collections.orders.statusOptions.map((value) => `<option>${escapeHtml(value)}</option>`).join('')}</select></label><label class="block text-[10px] uppercase tracking-[0.16em] text-stone-500">Delivery status<input id="edit-delivery" value="${escapeHtml(record.deliveryStatus || '')}" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs"></label><button id="save-detail" class="focus-ring w-full bg-ink py-3.5 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-black/80">Save order</button></div>`;
+            }
+            if (name === 'appointments') {
+                return `<div class="space-y-5"><div class="grid gap-3 border-y border-line py-4 text-xs sm:grid-cols-2"><p class="text-stone-500">Email<br><span class="break-all text-ink">${escapeHtml(record.customerEmail || 'Not provided')}</span></p><p class="text-stone-500">Phone<br><span class="text-ink">${escapeHtml(record.customerPhone || 'Not provided')}</span></p><p class="text-stone-500">Submitted<br><span class="text-ink">${escapeHtml(record.createdAt ? displayValue(record.createdAt) : 'Date unavailable')}</span></p></div><div><p class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Client message</p><p class="mt-2 whitespace-pre-wrap text-sm leading-6">${escapeHtml(record.message || 'No message supplied.')}</p></div><label class="block text-[10px] uppercase tracking-[0.16em] text-stone-500">Appointment status<select id="edit-status" class="mt-2 w-full border border-line bg-paper px-3 py-3 text-xs">${collections.appointments.statusOptions.map((value) => `<option>${escapeHtml(value)}</option>`).join('')}</select></label><button id="save-detail" class="focus-ring w-full bg-ink py-3.5 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-black/80">Save appointment</button></div>`;
+            }
+            return `<div><p class="mb-2 text-[10px] uppercase tracking-[0.16em] text-stone-500">Document data / JSON</p><p class="mb-3 text-xs leading-5 text-stone-500">Edit the document fields below. User actions affect only the Firestore profile document, not Firebase Authentication.</p><textarea id="edit-json" spellcheck="false" rows="16" class="w-full border border-line bg-paper p-3 font-mono text-xs leading-5 outline-none focus:border-ink">${escapeHtml(editorJson(record))}</textarea><p id="json-error" role="alert" class="mt-2 hidden text-xs text-red-700"></p><button id="save-detail" class="focus-ring mt-4 w-full bg-ink py-3.5 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-black/80">Save changes</button></div>`;
+        }
+
+        async function saveDetail() {
+            const record = state.selected;
+            if (!record) return;
+            const name = state.activeCollection;
+            let updates;
+            if (name === 'orders') {
+                const rawAmount = $('edit-payment-amount').value.trim();
+                const paymentAmount = Number(rawAmount);
+                if (!rawAmount || !Number.isFinite(paymentAmount) || paymentAmount < 0) {
+                    showToast('Enter a valid payment amount of zero or more.');
+                    return;
+                }
+                updates = {
+                    status: $('edit-status').value,
+                    deliveryStatus: $('edit-delivery').value.trim(),
+                    paymentAmount,
+                    currency: $('edit-payment-currency').value
+                };
+            }
+            else if (name === 'appointments') updates = { status: $('edit-status').value };
+            else {
+                try {
+                    updates = parseEditorJson($('edit-json').value);
+                    delete updates.id;
+                    if (!updates || Array.isArray(updates) || typeof updates !== 'object') throw new Error('Enter a JSON object.');
+                } catch (error) {
+                    $('json-error').textContent = `Invalid JSON: ${error.message}`;
+                    $('json-error').classList.remove('hidden');
+                    return;
+                }
+            }
+            try {
+                await updateDoc(doc(db, name, record.id), updates);
+                closeDetail();
+                showToast('Changes saved.');
+            } catch (error) {
+                showToast(`Could not save changes (${error.code || 'unknown error'}).`);
+                console.error(error);
+            }
+        }
+
+        async function deleteRecord() {
+            const record = state.selected;
+            if (!record) return;
+            const name = state.activeCollection;
+            const label = name === 'users' ? 'user profile document' : name.slice(0, -1);
+            if (!window.confirm(`Permanently delete this ${label}? This cannot be undone.`)) return;
+            try {
+                await deleteDoc(doc(db, name, record.id));
+                closeDetail();
+                showToast(`${label[0].toUpperCase()}${label.slice(1)} deleted.`);
+            } catch (error) {
+                showToast(`Could not delete (${error.code || 'unknown error'}).`);
+                console.error(error);
+            }
+        }
+
+        function closeDetail() {
+            $('detail-dialog').classList.add('hidden');
+            $('detail-dialog').classList.remove('flex');
+            state.selected = null;
+        }
+
+        function closeAccountForm() {
+            $('account-dialog').classList.add('hidden');
+            $('account-dialog').classList.remove('flex');
+            $('account-form-error').classList.add('hidden');
+        }
+
+        async function createAccountDocument(event) {
+            event.preventDefault();
+            const lines = $('account-items').value.split('\n').map((line) => line.trim()).filter(Boolean);
+            const lineItems = lines.map((line) => {
+                const separator = line.lastIndexOf('|');
+                return { description: separator < 0 ? '' : line.slice(0, separator).trim(), amount: Number((separator < 0 ? '' : line.slice(separator + 1)).trim().replace(/,/g, '')) };
+            });
+            if (!lineItems.length || lineItems.some((item) => !item.description || !Number.isFinite(item.amount) || item.amount < 0)) {
+                $('account-form-error').textContent = 'Add at least one valid Description | Amount line.';
+                $('account-form-error').classList.remove('hidden');
+                return;
+            }
+            const button = $('save-account');
+            button.disabled = true;
+            button.textContent = 'Creating...';
+            const accessToken = crypto.randomUUID();
+            const documentType = $('account-type').value;
+            try {
+                await setDoc(doc(db, 'accounts', accessToken), {
+                    documentType,
+                    documentNumber: `RS-${documentType === 'Invoice' ? 'INV' : 'RCT'}-${new Date().getFullYear()}-${accessToken.slice(0, 6).toUpperCase()}`,
+                    clientName: $('account-client-name').value.trim(),
+                    clientEmail: $('account-client-email').value.trim().toLowerCase(),
+                    orderNumber: $('account-order-number').value.trim().toUpperCase(),
+                    lineItems,
+                    total: lineItems.reduce((sum, item) => sum + item.amount, 0),
+                    currency: $('account-currency').value.trim().toUpperCase() || 'NGN',
+                    notes: $('account-notes').value.trim(),
+                    accessToken,
+                    createdAt: serverTimestamp(),
+                    createdBy: auth.currentUser?.uid || '',
+                    sentAt: null
+                });
+                $('account-form').reset();
+                $('account-currency').value = 'NGN';
+                closeAccountForm();
+                showToast('Document created. Copy its client link from the account list.');
+            } catch (error) {
+                $('account-form-error').textContent = `Could not create document (${error.code || 'unknown error'}). Check Firestore rules.`;
+                $('account-form-error').classList.remove('hidden');
+                console.error(error);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Create document';
+            }
+        }
+
+        async function copyAccountLink(id) {
+            const account = state.records.accounts.find((item) => item.id === id);
+            if (!account) return;
+            const link = `${new URL('../account.html', window.location.href).href}?token=${encodeURIComponent(account.accessToken || id)}`;
+            try {
+                await navigator.clipboard.writeText(link);
+                await updateDoc(doc(db, 'accounts', id), { sentAt: serverTimestamp() });
+                showToast('Client link copied.');
+            } catch (error) {
+                window.prompt('Copy this client link:', link);
+            }
+        }
+
+        function listenToCollections() {
+            state.unsubscribers.forEach((unsubscribe) => unsubscribe());
+            state.unsubscribers = [];
+            for (const name of Object.keys(collections)) {
+                const unsubscribe = onSnapshot(collection(db, name), (snapshot) => {
+                    state.records[name] = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+                    state.records[name].sort((first, second) => (second.createdAt?.toMillis?.() || 0) - (first.createdAt?.toMillis?.() || 0));
+                    delete state.errors[name];
+                    updateCounts();
+                    renderCollection();
+                }, (error) => {
+                    state.errors[name] = `Could not load ${collections[name].label.toLowerCase()} (${error.code || 'unknown error'}). Check the Firestore rules for this collection.`;
+                    renderLoadError();
+                    console.error(error);
+                });
+                state.unsubscribers.push(unsubscribe);
+            }
+        }
+
+        $('login-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            $('login-message').classList.add('hidden');
+            try {
+                await signInWithEmailAndPassword(auth, $('login-email').value.trim().toLowerCase(), $('login-password').value);
+            } catch (error) {
+                $('login-message').textContent = `Sign-in failed (${error.code || 'unknown error'}).`;
+                $('login-message').classList.remove('hidden');
+            }
+        });
+        $('signout').addEventListener('click', () => signOut(auth));
+        $('mobile-menu-toggle').addEventListener('click', () => {
+            if ($('mobile-menu-toggle').getAttribute('aria-expanded') === 'true') closeMobileMenu(false);
+            else openMobileMenu();
+        });
+        $('mobile-menu-close').addEventListener('click', () => closeMobileMenu());
+        $('mobile-menu-backdrop').addEventListener('click', () => closeMobileMenu());
+        window.matchMedia('(min-width: 1024px)').addEventListener('change', (event) => { if (event.matches) closeMobileMenu(false); });
+        $('collection-nav').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-collection]');
+            if (button) setActiveCollection(button.dataset.collection);
+        });
+        $('record-search').addEventListener('input', renderCollection);
+        $('status-filter').addEventListener('change', renderCollection);
+        $('records-list').addEventListener('click', (event) => {
+            const copyButton = event.target.closest('[data-copy-account]');
+            if (copyButton) { copyAccountLink(copyButton.dataset.copyAccount); return; }
+        });
+        $('detail-content').addEventListener('click', (event) => {
+            const measurementButton = event.target.closest('#view-measurements');
+            if (measurementButton) {
+                const expanded = measurementButton.getAttribute('aria-expanded') === 'true';
+                $('measurements-panel').classList.toggle('hidden', expanded);
+                measurementButton.setAttribute('aria-expanded', String(!expanded));
+                measurementButton.textContent = expanded ? 'View measurements' : 'Hide measurements';
+            }
+            if (event.target.id === 'save-detail') saveDetail();
+        });
+        $('delete-record').addEventListener('click', deleteRecord);
+        $('close-detail').addEventListener('click', closeDetail);
+        $('close-detail-footer').addEventListener('click', closeDetail);
+        $('detail-dialog').addEventListener('click', (event) => { if (event.target === $('detail-dialog')) closeDetail(); });
+        $('create-account').addEventListener('click', () => { $('account-dialog').classList.remove('hidden'); $('account-dialog').classList.add('flex'); $('account-client-name').focus(); });
+        $('close-account').addEventListener('click', closeAccountForm);
+        $('cancel-account').addEventListener('click', closeAccountForm);
+        $('account-dialog').addEventListener('click', (event) => { if (event.target === $('account-dialog')) closeAccountForm(); });
+        $('account-form').addEventListener('submit', createAccountDocument);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') { closeDetail(); closeAccountForm(); closeMobileMenu(); }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            const approved = user?.uid === ADMIN_UID;
+            $('login-view').classList.toggle('hidden', approved);
+            $('admin-view').classList.toggle('hidden', !approved);
+            if (!user) {
+                state.unsubscribers.forEach((unsubscribe) => unsubscribe());
+                state.unsubscribers = [];
+                return;
+            }
+            if (!approved) {
+                signOut(auth);
+                $('login-message').textContent = 'This Firebase account is not approved for the admin workspace.';
+                $('login-message').classList.remove('hidden');
+                return;
+            }
+            $('admin-email').textContent = user.email || '';
+            setActiveCollection('orders', false);
+            listenToCollections();
+        });
     </script>
 </body>
 </html>
