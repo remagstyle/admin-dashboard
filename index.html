@@ -141,6 +141,14 @@
         // The payment Worker charges an order with no currency in GHS, so the dashboard must show and save GHS too.
         const ORDER_DEFAULT_CURRENCY = ONLINE_PAYMENT_CURRENCY;
         const orderCurrency = (record) => String(record.currency || ORDER_DEFAULT_CURRENCY).toUpperCase();
+        // The same words the payment Worker treats as "paid".
+        const PAID_STATES = ['paid', 'success', 'successful', 'confirmed'];
+        const isOrderPaid = (record) => PAID_STATES.includes(String(record?.paymentStatus || '').trim().toLowerCase());
+        // What was really collected (written by the payment Worker). Empty for older paid orders that have no record of it.
+        function receivedSummary(record) {
+            if (record.paidAmount == null || !Number.isFinite(Number(record.paidAmount))) return '';
+            return `${String(record.paidCurrency || orderCurrency(record)).toUpperCase()} ${Number(record.paidAmount).toLocaleString()}`;
+        }
         const app = initializeApp({ apiKey: 'AIzaSyCzcxTLAUH83sQsia4dPg5py19YzRsmw0o', authDomain: 'remagstyle-43b41.firebaseapp.com', projectId: 'remagstyle-43b41', messagingSenderId: '145831201308', appId: '1:145831201308:web:489a014516356f73a72dd9' });
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -194,9 +202,8 @@
             $('records-list').innerHTML = records.length ? records.map((record) => {
                 const badge = record.status || (name === 'appointments' ? 'New' : '');
                 const date = record.createdAt ? displayValue(record.createdAt) : '';
-                const amount = name === 'accounts' && record.total != null ? `${escapeHtml(record.currency || 'NGN')} ${Number(record.total).toLocaleString()}` : name === 'orders' && record.paymentAmount != null ? `${escapeHtml(orderCurrency(record))} ${Number(record.paymentAmount).toLocaleString()}` : '';
-                const paymentState = String(record.paymentStatus || '').trim().toLowerCase();
-                const paymentConfirmed = ['success', 'successful', 'confirmed', 'paid'].includes(paymentState);
+                const paymentConfirmed = isOrderPaid(record);
+                const amount = name === 'accounts' && record.total != null ? `${escapeHtml(record.currency || 'NGN')} ${Number(record.total).toLocaleString()}` : name === 'orders' && paymentConfirmed && receivedSummary(record) ? escapeHtml(receivedSummary(record)) : name === 'orders' && record.paymentAmount != null ? `${escapeHtml(orderCurrency(record))} ${Number(record.paymentAmount).toLocaleString()}` : '';
                 const footerEnd = name === 'orders'
                     ? `<span class="flex shrink-0 items-center gap-2"><span class="text-sm font-medium text-ink">${amount || 'Payment amount not set'}</span><span class="border ${paymentConfirmed ? 'border-moss text-moss' : 'border-line text-stone-500'} px-2 py-1 text-[9px] uppercase tracking-[0.12em]">${paymentConfirmed ? 'Paid' : 'Payment pending'}</span></span>`
                     : `<span class="shrink-0 text-ink">${amount || 'Open record'} &rarr;</span>`;
@@ -257,7 +264,10 @@
             $('delete-record').textContent = name === 'users' ? 'Delete profile record' : `Delete ${name.slice(0, -1)}`;
             $('detail-content').innerHTML = detailMarkup(name, record);
             if (name === 'orders') addMeasurementsDisclosure(record);
-            if (name === 'orders') addPaymentAmountEditor(record);
+            if (name === 'orders') {
+                if (isOrderPaid(record)) addPaymentSummary(record);
+                addPaymentAmountEditor(record);
+            }
             if (name === 'orders' || name === 'appointments') $('edit-status').value = record.status || collections[name].statusOptions[0];
             $('detail-dialog').classList.remove('hidden');
             $('detail-dialog').classList.add('flex');
@@ -291,7 +301,51 @@
             return `<div class="grid grid-cols-2 gap-2">${entries.map(([key, value]) => `<div class="border border-line bg-paper p-3"><p class="text-[9px] uppercase tracking-[0.12em] text-stone-500">${escapeHtml(key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' '))}</p><p class="mt-1 text-sm">${escapeHtml(value)} cm</p></div>`).join('')}</div>`;
         }
 
+        // Read-only record of the payment, using text (never HTML) so nothing a customer or Paystack sends can run as code.
+        function addPaymentSummary(record) {
+            const panel = document.createElement('div');
+            panel.id = 'payment-summary';
+            panel.className = 'border border-moss bg-white p-4 text-xs';
+            const title = document.createElement('p');
+            title.className = 'text-[10px] uppercase tracking-[0.16em] text-moss';
+            title.textContent = receivedSummary(record) ? 'Payment received' : 'Payment recorded';
+            const list = document.createElement('dl');
+            list.className = 'mt-3 grid gap-3 sm:grid-cols-2';
+            const paidDate = record.paidAt ? new Date(record.paidAt) : null;
+            const rows = [
+                ['Amount received', receivedSummary(record) || 'Not recorded'],
+                ['Paid on', paidDate && !Number.isNaN(paidDate.getTime()) ? paidDate.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Not recorded'],
+                ['Paystack reference', record.paymentReference || 'Not recorded'],
+                ['Paystack transaction ID', record.paystackTransactionId || 'Not recorded']
+            ];
+            for (const [label, value] of rows) {
+                const row = document.createElement('div');
+                const term = document.createElement('dt');
+                term.className = 'text-stone-500';
+                term.textContent = label;
+                const detail = document.createElement('dd');
+                detail.className = 'mt-1 break-all text-ink';
+                detail.textContent = String(value);
+                row.append(term, detail);
+                list.append(row);
+            }
+            panel.append(title, list);
+            const received = Number(record.paidAmount);
+            const price = Number(record.paymentAmount);
+            const differs = record.paidAmount != null && Number.isFinite(received)
+                && (!Number.isFinite(price) || Math.abs(received - price) > 0.005 || String(record.paidCurrency || orderCurrency(record)).toUpperCase() !== orderCurrency(record));
+            if (differs) {
+                const warning = document.createElement('p');
+                warning.className = 'mt-3 text-[11px] leading-5 text-clay';
+                warning.textContent = `The order price on file is ${orderCurrency(record)} ${Number.isFinite(price) ? price.toLocaleString() : 'not set'}, which differs from the amount received. The received amount above is what Paystack collected.`;
+                panel.append(warning);
+            }
+            const saveButton = $('save-detail');
+            saveButton.parentNode.insertBefore(panel, saveButton);
+        }
+
         function addPaymentAmountEditor(record) {
+            const locked = isOrderPaid(record);
             const fields = document.createElement('div');
             fields.className = 'grid grid-cols-2 gap-3';
             const amountLabel = document.createElement('label');
@@ -306,6 +360,7 @@
             input.required = true;
             input.value = record.paymentAmount ?? '';
             input.className = 'mt-2 w-full border border-line bg-paper px-3 py-3 text-xs';
+            if (locked) { input.disabled = true; input.classList.add('opacity-60', 'cursor-not-allowed'); }
             amountLabel.append(input);
 
             const currencyOptions = [[ONLINE_PAYMENT_CURRENCY, 'Ghanaian cedi']];
@@ -322,10 +377,16 @@
                 : [[currentCurrency, 'Current currency, not payable online'], ...currencyOptions];
             currencySelect.innerHTML = availableCurrencies.map(([code, label]) => `<option value="${escapeHtml(code)}">${escapeHtml(code)} - ${escapeHtml(label)}</option>`).join('');
             currencySelect.value = currentCurrency;
+            if (locked) { currencySelect.disabled = true; currencySelect.classList.add('opacity-60', 'cursor-not-allowed'); }
             currencyLabel.append(currencySelect);
             const hint = document.createElement('p');
             hint.id = 'payment-hint';
             const updateHint = () => {
+                if (locked) {
+                    hint.className = 'col-span-2 text-[11px] leading-5 text-stone-500';
+                    hint.textContent = 'Locked because this order has been paid. The amount received is shown above.';
+                    return;
+                }
                 const payable = currencySelect.value === ONLINE_PAYMENT_CURRENCY;
                 hint.className = `col-span-2 text-[11px] leading-5 ${payable ? 'text-stone-500' : 'text-clay'}`;
                 hint.textContent = payable
@@ -366,19 +427,26 @@
             let updates;
             let savedMessage = 'Changes saved.';
             if (name === 'orders') {
-                const checked = checkPaymentAmount($('edit-payment-amount').value.trim());
-                if (checked.error) {
-                    showToast(checked.error);
-                    return;
-                }
+                // Look at the newest copy, in case the customer paid while this editor was open.
+                const latest = state.records.orders.find((item) => item.id === record.id) || record;
                 updates = {
                     status: $('edit-status').value,
-                    deliveryStatus: $('edit-delivery').value.trim(),
-                    paymentAmount: checked.amount,
-                    currency: $('edit-payment-currency').value
+                    deliveryStatus: $('edit-delivery').value.trim()
                 };
-                if (updates.paymentAmount > 0 && updates.currency !== ONLINE_PAYMENT_CURRENCY) {
-                    savedMessage = `Changes saved. Customers can only pay online in ${ONLINE_PAYMENT_CURRENCY}, so this order cannot be paid online.`;
+                if (isOrderPaid(latest)) {
+                    // A paid order's price and currency are never changed from here.
+                    if (!isOrderPaid(record)) savedMessage = 'Changes saved. This order was just paid, so its amount and currency were left unchanged.';
+                } else {
+                    const checked = checkPaymentAmount($('edit-payment-amount').value.trim());
+                    if (checked.error) {
+                        showToast(checked.error);
+                        return;
+                    }
+                    updates.paymentAmount = checked.amount;
+                    updates.currency = $('edit-payment-currency').value;
+                    if (updates.paymentAmount > 0 && updates.currency !== ONLINE_PAYMENT_CURRENCY) {
+                        savedMessage = `Changes saved. Customers can only pay online in ${ONLINE_PAYMENT_CURRENCY}, so this order cannot be paid online.`;
+                    }
                 }
             }
             else if (name === 'appointments') updates = { status: $('edit-status').value };
@@ -408,7 +476,17 @@
             if (!record) return;
             const name = state.activeCollection;
             const label = name === 'users' ? 'user profile document' : name.slice(0, -1);
-            if (!window.confirm(`Permanently delete this ${label}? This cannot be undone.`)) return;
+            const latest = name === 'orders' ? (state.records.orders.find((item) => item.id === record.id) || record) : record;
+            if (name === 'orders' && isOrderPaid(latest)) {
+                const received = receivedSummary(latest);
+                const reference = latest.paymentReference ? ` (reference ${latest.paymentReference})` : '';
+                const typed = window.prompt(`This order has a recorded payment${received ? ` of ${received}` : ''}${reference}.\n\nDeleting the order removes it from this dashboard. The payment itself stays recorded in Paystack and in your Firebase payments records.\n\nType DELETE to confirm.`);
+                if (typed === null) return;
+                if (String(typed).trim().toUpperCase() !== 'DELETE') {
+                    showToast('Nothing was deleted.');
+                    return;
+                }
+            } else if (!window.confirm(`Permanently delete this ${label}? This cannot be undone.`)) return;
             try {
                 await deleteDoc(doc(db, name, record.id));
                 closeDetail();
