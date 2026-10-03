@@ -51,6 +51,7 @@
                 <button data-collection="appointments" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Appointments</span><span data-count="appointments">0</span></button>
                 <button data-collection="accounts" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Accounts</span><span data-count="accounts">0</span></button>
                 <button data-collection="users" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Users</span><span data-count="users">0</span></button>
+                <button data-view="gallery" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Gallery</span><span data-gallery-count>0</span></button>
             </nav>
             <div class="mt-auto border-t border-line pt-5">
                 <p id="admin-email" class="break-all text-[9px] text-stone-500"></p>
@@ -75,14 +76,14 @@
                 </div>
             </header>
 
-            <section class="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Collection totals">
+            <section id="stats-section" class="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Collection totals">
                 <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Orders</p><p data-stat="orders" class="mt-2 font-serif text-3xl">0</p></div>
                 <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Appointments</p><p data-stat="appointments" class="mt-2 font-serif text-3xl">0</p></div>
                 <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Accounts</p><p data-stat="accounts" class="mt-2 font-serif text-3xl">0</p></div>
                 <div class="border border-line bg-white p-4"><p class="text-[9px] uppercase tracking-[0.16em] text-stone-500">Users</p><p data-stat="users" class="mt-2 font-serif text-3xl">0</p></div>
             </section>
 
-            <div class="mt-9 flex flex-col justify-between gap-4 border-b border-line pb-4 sm:flex-row sm:items-end">
+            <div id="collection-controls" class="mt-9 flex flex-col justify-between gap-4 border-b border-line pb-4 sm:flex-row sm:items-end">
                 <div>
                     <p id="collection-kicker" class="text-[10px] uppercase tracking-[0.2em] text-stone-500">Incoming work</p>
                     <h2 id="collection-title" class="mt-1 font-serif text-3xl font-light">All orders</h2>
@@ -94,6 +95,25 @@
             </div>
             <p id="load-error" role="status" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-xs text-red-700"></p>
             <div id="records-list" class="mt-5 grid gap-3 xl:grid-cols-2" aria-live="polite"></div>
+            <section id="gallery-panel" class="hidden" aria-label="Website gallery">
+                <div class="mt-7 border border-line bg-white p-5">
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-stone-500">Add to the website gallery</p>
+                    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <label class="flex-1 text-[10px] uppercase tracking-[0.16em] text-stone-500">Photos or videos
+                            <input id="gallery-files" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif,.mp4,.mov,.m4v,.webm" class="mt-2 block w-full border border-line bg-paper px-3 py-2.5 text-xs normal-case tracking-normal">
+                        </label>
+                        <label class="flex-1 text-[10px] uppercase tracking-[0.16em] text-stone-500">Caption (optional)
+                            <input id="gallery-caption" maxlength="80" class="mt-2 block w-full border border-line bg-paper px-3 py-2.5 text-xs normal-case tracking-normal outline-none focus:border-ink">
+                        </label>
+                        <button id="gallery-upload" type="button" class="focus-ring bg-ink px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white hover:bg-black/80 disabled:opacity-50">Upload</button>
+                    </div>
+                    <p class="mt-3 text-[11px] leading-5 text-stone-500">Photos up to 10 MB, videos up to 100 MB. Until you add something here, the website keeps showing your original photos.</p>
+                    <div id="gallery-progress" class="mt-4 space-y-2" aria-live="polite"></div>
+                </div>
+                <p id="gallery-error" role="status" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-xs text-red-700"></p>
+                <p id="gallery-empty" class="mt-6 hidden text-xs text-stone-500">No gallery items yet.</p>
+                <div id="gallery-grid" class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"></div>
+            </section>
         </section>
     </div>
 
@@ -132,7 +152,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, setDoc, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+        import { getFirestore, collection, onSnapshot, updateDoc, deleteDoc, doc, setDoc, addDoc, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
         const ADMIN_UID = 'x1fOQ89476YB1e7RPxGsYlTNWKi1';
         // Customers can only pay online in GHS, and the payment Worker refuses amounts outside these limits.
@@ -158,7 +178,7 @@
             accounts: { label: 'Accounts', kicker: 'Invoices and receipts', searchable: ['documentNumber', 'documentType', 'clientName', 'clientEmail', 'orderNumber'], heading: (item) => item.clientName || 'Unnamed client', subheading: (item) => [item.documentNumber, item.documentType].filter(Boolean).join(' / ') },
             users: { label: 'Users', kicker: 'Client profiles', searchable: ['name', 'displayName', 'email', 'uid'], heading: (item) => item.displayName || item.name || item.email || 'User profile', subheading: (item) => item.email || item.uid || item.id }
         };
-        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [] };
+        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [], gallery: [], galleryOpen: false };
         const $ = (id) => document.getElementById(id);
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
         const displayValue = (value) => value?.toDate?.().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) || (value instanceof Date ? value.toLocaleString() : String(value ?? ''));
@@ -182,7 +202,7 @@
         function renderLoadError() {
             const error = state.errors[state.activeCollection];
             $('load-error').textContent = error || '';
-            $('load-error').classList.toggle('hidden', !error);
+            $('load-error').classList.toggle('hidden', state.galleryOpen || !error);
         }
 
         function renderCollection() {
@@ -224,6 +244,7 @@
         }
 
         function setActiveCollection(name, closeMenu = true) {
+            setGalleryOpen(false);
             state.activeCollection = name;
             document.querySelectorAll('.nav-button').forEach((button) => {
                 if (button.dataset.collection === name) button.setAttribute('aria-current', 'page');
@@ -569,6 +590,214 @@
             }
         }
 
+        // ---------- Gallery: photos and videos live on Cloudinary; the media Worker signs uploads and deletes ----------
+        const MEDIA_WORKER_URL = 'https://remagstyle-media-worker.1realstranger.workers.dev';
+        const CLOUD_NAME = 'hjsztwfj';
+        const GALLERY_ID_RE = /^remagstyle-gallery\/[a-f0-9]{32}$/;
+        const MEDIA_TYPES = { image: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic', 'heif'], video: ['mp4', 'mov', 'm4v', 'webm'] };
+        const MEDIA_LIMITS = { image: 10 * 1024 * 1024, video: 100 * 1024 * 1024 };
+        const mediaKind = (file) => Object.keys(MEDIA_TYPES).find((kind) => MEDIA_TYPES[kind].includes((file.name.split('.').pop() || '').toLowerCase())) || null;
+        const megabytes = (bytes) => `${Math.round(bytes / 1048576)} MB`;
+
+        function galleryThumb(item) {
+            const base = `https://res.cloudinary.com/${CLOUD_NAME}`;
+            return item.resourceType === 'video'
+                ? `${base}/video/upload/so_0,c_fill,w_400,h_400,f_jpg,q_auto/${item.publicId}.jpg`
+                : `${base}/image/upload/c_fill,w_400,h_400,f_auto,q_auto/${item.publicId}`;
+        }
+
+        function setGalleryOpen(open) {
+            state.galleryOpen = open;
+            for (const id of ['stats-section', 'collection-controls', 'records-list']) $(id).classList.toggle('hidden', open);
+            $('gallery-panel').classList.toggle('hidden', !open);
+            $('view-kicker').textContent = open ? 'Website media' : 'Client operations';
+            if (open) {
+                $('view-title').textContent = 'Gallery';
+                $('create-account').classList.add('hidden');
+                $('load-error').classList.add('hidden');
+            } else renderLoadError();
+        }
+
+        function openGallery() {
+            setGalleryOpen(true);
+            document.querySelectorAll('.nav-button').forEach((button) => {
+                if (button.dataset.view === 'gallery') button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            });
+            renderGallery();
+            closeMobileMenu();
+        }
+
+        // Everything below is built with text and properties (never HTML strings), so captions cannot run as code.
+        function renderGallery() {
+            const items = state.gallery.filter((item) => GALLERY_ID_RE.test(item.publicId) && (item.resourceType === 'image' || item.resourceType === 'video'));
+            document.querySelector('[data-gallery-count]').textContent = items.length;
+            $('gallery-error').textContent = state.errors.gallery || '';
+            $('gallery-error').classList.toggle('hidden', !state.errors.gallery);
+            $('gallery-empty').classList.toggle('hidden', items.length > 0 || Boolean(state.errors.gallery));
+            const grid = $('gallery-grid');
+            grid.replaceChildren();
+            for (const item of items) {
+                const card = document.createElement('article');
+                card.className = 'border border-line bg-white';
+                const frame = document.createElement('div');
+                frame.className = 'relative aspect-square bg-stone-100';
+                const picture = document.createElement('img');
+                picture.src = galleryThumb(item);
+                picture.alt = item.caption || '';
+                picture.loading = 'lazy';
+                picture.className = 'h-full w-full object-cover';
+                picture.addEventListener('error', () => {
+                    picture.remove();
+                    const fallback = document.createElement('div');
+                    fallback.className = 'flex h-full w-full items-center justify-center text-[10px] uppercase tracking-[0.16em] text-stone-500';
+                    fallback.textContent = item.resourceType === 'video' ? 'Video' : 'Preview unavailable';
+                    frame.prepend(fallback);
+                });
+                frame.append(picture);
+                if (item.resourceType === 'video') {
+                    const badge = document.createElement('span');
+                    badge.className = 'absolute left-2 top-2 bg-ink px-2 py-1 text-[9px] uppercase tracking-[0.14em] text-white';
+                    badge.textContent = 'Video';
+                    frame.append(badge);
+                }
+                const body = document.createElement('div');
+                body.className = 'p-3';
+                const caption = document.createElement('p');
+                caption.className = 'truncate text-xs';
+                caption.textContent = item.caption || (item.resourceType === 'video' ? 'Video' : 'Photo');
+                const meta = document.createElement('p');
+                meta.className = 'mt-1 text-[10px] text-stone-500';
+                meta.textContent = [item.bytes ? `${(item.bytes / 1048576).toFixed(1)} MB` : '', displayValue(item.createdAt)].filter(Boolean).join(' / ');
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.dataset.galleryDelete = item.id;
+                remove.className = 'focus-ring mt-3 text-[10px] uppercase tracking-[0.16em] text-clay hover:underline';
+                remove.textContent = 'Delete';
+                body.append(caption, meta, remove);
+                card.append(frame, body);
+                grid.append(card);
+            }
+        }
+
+        function listenToGallery() {
+            const unsubscribe = onSnapshot(collection(db, 'gallery'), (snapshot) => {
+                state.gallery = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+                const when = (item) => item.createdAt?.toMillis?.() || Number.MAX_SAFE_INTEGER; // just-added items count as newest
+                state.gallery.sort((first, second) => when(second) - when(first));
+                delete state.errors.gallery;
+                renderGallery();
+            }, (error) => {
+                state.errors.gallery = `Could not load the gallery (${error.code || 'unknown error'}). Publish the Firestore rule for the "gallery" collection.`;
+                renderGallery();
+                console.error(error);
+            });
+            state.unsubscribers.push(unsubscribe);
+        }
+
+        async function workerPost(path, body) {
+            if (!auth.currentUser) throw new Error('Please sign in again.');
+            const token = await auth.currentUser.getIdToken();
+            const response = await fetch(`${MEDIA_WORKER_URL}${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.ok) throw new Error(data.error || 'The media service did not respond. Please try again.');
+            return data;
+        }
+
+        function sendToCloudinary(signed, file, onProgress) {
+            return new Promise((resolve, reject) => {
+                const form = new FormData();
+                for (const [key, value] of Object.entries(signed.fields)) form.append(key, value);
+                form.append('file', file);
+                const request = new XMLHttpRequest();
+                request.open('POST', signed.uploadUrl);
+                request.upload.onprogress = (event) => { if (event.lengthComputable) onProgress(event.loaded / event.total); };
+                request.onerror = () => reject(new Error('The upload was interrupted. Check your connection and try again.'));
+                request.onload = () => {
+                    let data = {};
+                    try { data = JSON.parse(request.responseText); } catch { /* not JSON */ }
+                    if (request.status >= 200 && request.status < 300 && data.public_id) resolve(data);
+                    else reject(new Error(`The file was refused${data.error?.message ? `: ${data.error.message}` : '.'}`));
+                };
+                request.send(form);
+            });
+        }
+
+        async function uploadOne(file, caption, setStatus) {
+            const kind = mediaKind(file);
+            if (!kind) throw new Error('Unsupported file type. Use JPG, PNG, WebP, GIF, AVIF or HEIC photos, or MP4, MOV or WebM videos.');
+            if (file.size === 0) throw new Error('This file is empty.');
+            if (file.size > MEDIA_LIMITS[kind]) throw new Error(`This ${kind} is ${megabytes(file.size)}. The limit is ${megabytes(MEDIA_LIMITS[kind])}.`);
+            setStatus('Preparing...');
+            const signed = await workerPost('/sign-upload', { resourceType: kind });
+            setStatus('Uploading 0%');
+            const result = await sendToCloudinary(signed, file, (fraction) => setStatus(`Uploading ${Math.round(fraction * 100)}%`));
+            if (result.public_id !== signed.publicId || result.resource_type !== kind) throw new Error('The upload did not match what was expected, so it was not added.');
+            setStatus('Saving...');
+            try {
+                await addDoc(collection(db, 'gallery'), {
+                    publicId: signed.publicId, resourceType: kind, caption,
+                    width: result.width ?? null, height: result.height ?? null, bytes: result.bytes ?? file.size,
+                    format: result.format ?? null, duration: result.duration ?? null, createdAt: serverTimestamp()
+                });
+            } catch (error) {
+                await workerPost('/delete', { publicId: signed.publicId, resourceType: kind }).catch(() => {}); // do not leave an orphan file
+                throw new Error('Uploaded, but it could not be saved to the gallery, so it was removed. Check the Firestore rule for "gallery".');
+            }
+        }
+
+        async function uploadFiles() {
+            const input = $('gallery-files');
+            const files = Array.from(input.files || []);
+            if (!files.length) { showToast('Choose one or more photos or videos first.'); return; }
+            const caption = $('gallery-caption').value.trim().slice(0, 80);
+            const button = $('gallery-upload');
+            button.disabled = true;
+            let added = 0;
+            for (const file of files) {
+                const row = document.createElement('p');
+                row.className = 'flex justify-between gap-3 border border-line bg-paper px-3 py-2 text-[11px]';
+                const name = document.createElement('span');
+                name.className = 'truncate';
+                name.textContent = file.name;
+                const status = document.createElement('span');
+                status.className = 'shrink-0 text-stone-500';
+                row.append(name, status);
+                $('gallery-progress').append(row);
+                try {
+                    await uploadOne(file, caption, (text) => { status.textContent = text; });
+                    status.textContent = 'Added';
+                    status.className = 'shrink-0 text-moss';
+                    added += 1;
+                } catch (error) {
+                    status.textContent = error.message || 'Failed';
+                    status.className = 'text-right text-clay';
+                    console.error('Gallery upload failed:', error);
+                }
+            }
+            button.disabled = false;
+            input.value = '';
+            showToast(added === files.length ? `Added ${added} to the gallery.` : added ? `Added ${added} of ${files.length}. See the list for details.` : 'Nothing was added. See the list for details.');
+        }
+
+        async function deleteGalleryItem(id) {
+            const item = state.gallery.find((entry) => entry.id === id);
+            if (!item) return;
+            if (!window.confirm(`Delete this ${item.resourceType === 'video' ? 'video' : 'photo'} from the gallery? It will also disappear from the website and cannot be undone.`)) return;
+            try {
+                await workerPost('/delete', { publicId: item.publicId, resourceType: item.resourceType });
+                await deleteDoc(doc(db, 'gallery', id));
+                showToast('Deleted from the gallery.');
+            } catch (error) {
+                console.error('Gallery delete failed:', error);
+                showToast(`Could not delete: ${error.message || error}`);
+            }
+        }
+
         function listenToCollections() {
             state.unsubscribers.forEach((unsubscribe) => unsubscribe());
             state.unsubscribers = [];
@@ -586,6 +815,7 @@
                 });
                 state.unsubscribers.push(unsubscribe);
             }
+            listenToGallery();
         }
 
         $('login-form').addEventListener('submit', async (event) => {
@@ -609,6 +839,12 @@
         $('collection-nav').addEventListener('click', (event) => {
             const button = event.target.closest('[data-collection]');
             if (button) setActiveCollection(button.dataset.collection);
+            if (event.target.closest('[data-view="gallery"]')) openGallery();
+        });
+        $('gallery-upload').addEventListener('click', uploadFiles);
+        $('gallery-grid').addEventListener('click', (event) => {
+            const button = event.target.closest('[data-gallery-delete]');
+            if (button) deleteGalleryItem(button.dataset.galleryDelete);
         });
         $('record-search').addEventListener('input', renderCollection);
         $('status-filter').addEventListener('change', renderCollection);
