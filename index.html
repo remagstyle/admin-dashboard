@@ -98,7 +98,15 @@
             <section id="gallery-panel" class="hidden" aria-label="Website gallery">
                 <div class="mt-7 border border-line bg-white p-5">
                     <p class="text-[10px] uppercase tracking-[0.2em] text-stone-500">Add to the website gallery</p>
-                    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                        <label class="text-[10px] uppercase tracking-[0.16em] text-stone-500">Collection
+                            <select id="gallery-collection" class="mt-2 block w-full border border-line bg-paper px-3 py-2.5 text-xs normal-case tracking-normal outline-none focus:border-ink"></select>
+                        </label>
+                        <label id="gallery-new-collection-label" class="hidden text-[10px] uppercase tracking-[0.16em] text-stone-500">New collection name
+                            <input id="gallery-new-collection" maxlength="40" placeholder="e.g. Bridal" class="mt-2 block w-full border border-line bg-paper px-3 py-2.5 text-xs normal-case tracking-normal outline-none focus:border-ink">
+                        </label>
+                    </div>
+                    <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
                         <label class="flex-1 text-[10px] uppercase tracking-[0.16em] text-stone-500">Photos or videos
                             <input id="gallery-files" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif,.mp4,.mov,.m4v,.webm" class="mt-2 block w-full border border-line bg-paper px-3 py-2.5 text-xs normal-case tracking-normal">
                         </label>
@@ -109,6 +117,11 @@
                     </div>
                     <p class="mt-3 text-[11px] leading-5 text-stone-500">Photos up to 10 MB, videos up to 100 MB. Until you add something here, the website keeps showing your original photos.</p>
                     <div id="gallery-progress" class="mt-4 space-y-2" aria-live="polite"></div>
+                </div>
+                <div class="mt-4 border border-line bg-white p-5">
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-stone-500">Collections</p>
+                    <p id="collection-empty" class="mt-3 hidden text-xs text-stone-500">No collections yet. Choose "+ New collection..." when uploading to create one.</p>
+                    <ul id="collection-manager" class="mt-3 divide-y divide-line"></ul>
                 </div>
                 <p id="gallery-error" role="status" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-xs text-red-700"></p>
                 <p id="gallery-empty" class="mt-6 hidden text-xs text-stone-500">No gallery items yet.</p>
@@ -178,7 +191,7 @@
             accounts: { label: 'Accounts', kicker: 'Invoices and receipts', searchable: ['documentNumber', 'documentType', 'clientName', 'clientEmail', 'orderNumber'], heading: (item) => item.clientName || 'Unnamed client', subheading: (item) => [item.documentNumber, item.documentType].filter(Boolean).join(' / ') },
             users: { label: 'Users', kicker: 'Client profiles', searchable: ['name', 'displayName', 'email', 'uid'], heading: (item) => item.displayName || item.name || item.email || 'User profile', subheading: (item) => item.email || item.uid || item.id }
         };
-        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [], gallery: [], galleryOpen: false };
+        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [], gallery: [], galleryCollections: [], galleryOpen: false };
         const $ = (id) => document.getElementById(id);
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
         const displayValue = (value) => value?.toDate?.().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) || (value instanceof Date ? value.toLocaleString() : String(value ?? ''));
@@ -628,13 +641,139 @@
             closeMobileMenu();
         }
 
+        const COLLECTION_NAME_MAX = 40;
+        const NEW_COLLECTION = '__new';
+        const cleanCollectionName = (value) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, COLLECTION_NAME_MAX).trim();
+        const findCollectionByName = (name) => {
+            const wanted = cleanCollectionName(name).toLowerCase();
+            return wanted ? state.galleryCollections.find((entry) => cleanCollectionName(entry.name).toLowerCase() === wanted) || null : null;
+        };
+        const collectionName = (id) => {
+            const found = state.galleryCollections.find((entry) => entry.id === id);
+            return found ? cleanCollectionName(found.name) : '';
+        };
+
+        // Rebuilds the upload dropdown and the manager list. Text only, so names can never run as code.
+        function renderCollectionControls() {
+            const select = $('gallery-collection');
+            const previous = select.value;
+            select.replaceChildren();
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Choose a collection...';
+            select.append(placeholder);
+            for (const entry of state.galleryCollections) {
+                const option = document.createElement('option');
+                option.value = entry.id;
+                option.textContent = cleanCollectionName(entry.name) || 'Untitled';
+                select.append(option);
+            }
+            const create = document.createElement('option');
+            create.value = NEW_COLLECTION;
+            create.textContent = '+ New collection...';
+            select.append(create);
+            const wanted = state.selectCollectionId || previous;
+            state.selectCollectionId = null;
+            select.value = Array.from(select.options).some((option) => option.value === wanted) ? wanted : '';
+            $('gallery-new-collection-label').classList.toggle('hidden', select.value !== NEW_COLLECTION);
+
+            const counts = {};
+            for (const item of state.gallery) if (item.collectionId) counts[item.collectionId] = (counts[item.collectionId] || 0) + 1;
+            const list = $('collection-manager');
+            list.replaceChildren();
+            $('collection-empty').classList.toggle('hidden', state.galleryCollections.length > 0);
+            for (const entry of state.galleryCollections) {
+                const row = document.createElement('li');
+                row.className = 'flex items-center justify-between gap-3 py-2 text-xs';
+                const label = document.createElement('span');
+                label.className = 'truncate';
+                label.textContent = `${cleanCollectionName(entry.name) || 'Untitled'} (${counts[entry.id] || 0})`;
+                const actions = document.createElement('span');
+                actions.className = 'flex shrink-0 gap-4';
+                const rename = document.createElement('button');
+                rename.type = 'button';
+                rename.dataset.collectionRename = entry.id;
+                rename.className = 'focus-ring text-[10px] uppercase tracking-[0.16em] hover:underline';
+                rename.textContent = 'Rename';
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.dataset.collectionDelete = entry.id;
+                remove.className = 'focus-ring text-[10px] uppercase tracking-[0.16em] text-clay hover:underline';
+                remove.textContent = 'Delete';
+                actions.append(rename, remove);
+                row.append(label, actions);
+                list.append(row);
+            }
+        }
+
+        // Returns the id of the named collection, creating it when it does not exist (case-insensitive match).
+        async function ensureCollection(rawName) {
+            const name = cleanCollectionName(rawName);
+            if (!name) throw new Error('Type a name for the new collection.');
+            const existing = findCollectionByName(name);
+            if (existing) return existing.id;
+            const created = await addDoc(collection(db, 'galleryCollections'), { name, nameLower: name.toLowerCase(), createdAt: serverTimestamp() });
+            return created.id;
+        }
+
+        async function renameCollection(id) {
+            const entry = state.galleryCollections.find((item) => item.id === id);
+            if (!entry) return;
+            const answer = window.prompt('New name for this collection:', cleanCollectionName(entry.name));
+            if (answer === null) return;
+            const name = cleanCollectionName(answer);
+            if (!name) { showToast('A collection needs a name.'); return; }
+            const clash = findCollectionByName(name);
+            if (clash && clash.id !== id) { showToast(`There is already a collection called "${cleanCollectionName(clash.name)}".`); return; }
+            try {
+                await updateDoc(doc(db, 'galleryCollections', id), { name, nameLower: name.toLowerCase() });
+                showToast('Collection renamed.');
+            } catch (error) {
+                console.error('Rename failed:', error);
+                showToast(`Could not rename: ${error.message || error}`);
+            }
+        }
+
+        async function removeCollection(id) {
+            const entry = state.galleryCollections.find((item) => item.id === id);
+            if (!entry) return;
+            const inside = state.gallery.filter((item) => item.collectionId === id).length;
+            if (inside > 0) { showToast(`Move or delete the ${inside} item${inside === 1 ? '' : 's'} in "${cleanCollectionName(entry.name)}" first.`); return; }
+            if (!window.confirm(`Delete the collection "${cleanCollectionName(entry.name)}"? It is empty, so no photos are lost.`)) return;
+            try {
+                await deleteDoc(doc(db, 'galleryCollections', id));
+                showToast('Collection deleted.');
+            } catch (error) {
+                console.error('Collection delete failed:', error);
+                showToast(`Could not delete: ${error.message || error}`);
+            }
+        }
+
+        async function moveGalleryItem(itemId, collectionId) {
+            const item = state.gallery.find((entry) => entry.id === itemId);
+            if (!item) return;
+            const target = collectionId || null;
+            if (target && !state.galleryCollections.some((entry) => entry.id === target)) return;
+            if ((item.collectionId || null) === target) return;
+            try {
+                await updateDoc(doc(db, 'gallery', itemId), { collectionId: target });
+                showToast(target ? `Moved to "${collectionName(target)}".` : 'Removed from its collection.');
+            } catch (error) {
+                console.error('Move failed:', error);
+                showToast(`Could not move: ${error.message || error}`);
+                renderGallery();
+            }
+        }
+
         // Everything below is built with text and properties (never HTML strings), so captions cannot run as code.
         function renderGallery() {
+            renderCollectionControls();
             const items = state.gallery.filter((item) => GALLERY_ID_RE.test(item.publicId) && (item.resourceType === 'image' || item.resourceType === 'video'));
             document.querySelector('[data-gallery-count]').textContent = items.length;
-            $('gallery-error').textContent = state.errors.gallery || '';
-            $('gallery-error').classList.toggle('hidden', !state.errors.gallery);
-            $('gallery-empty').classList.toggle('hidden', items.length > 0 || Boolean(state.errors.gallery));
+            const galleryProblem = [state.errors.gallery, state.errors.galleryCollections].filter(Boolean).join(' ');
+            $('gallery-error').textContent = galleryProblem;
+            $('gallery-error').classList.toggle('hidden', !galleryProblem);
+            $('gallery-empty').classList.toggle('hidden', items.length > 0 || Boolean(galleryProblem));
             const grid = $('gallery-grid');
             grid.replaceChildren();
             for (const item of items) {
@@ -674,7 +813,22 @@
                 remove.dataset.galleryDelete = item.id;
                 remove.className = 'focus-ring mt-3 text-[10px] uppercase tracking-[0.16em] text-clay hover:underline';
                 remove.textContent = 'Delete';
-                body.append(caption, meta, remove);
+                const move = document.createElement('select');
+                move.dataset.galleryMove = item.id;
+                move.setAttribute('aria-label', 'Collection for this item');
+                move.className = 'mt-2 block w-full border border-line bg-paper px-2 py-1.5 text-[11px] outline-none focus:border-ink';
+                const none = document.createElement('option');
+                none.value = '';
+                none.textContent = 'No collection';
+                move.append(none);
+                for (const entry of state.galleryCollections) {
+                    const option = document.createElement('option');
+                    option.value = entry.id;
+                    option.textContent = cleanCollectionName(entry.name) || 'Untitled';
+                    move.append(option);
+                }
+                move.value = state.galleryCollections.some((entry) => entry.id === item.collectionId) ? item.collectionId : '';
+                body.append(caption, meta, move, remove);
                 card.append(frame, body);
                 grid.append(card);
             }
@@ -689,6 +843,20 @@
                 renderGallery();
             }, (error) => {
                 state.errors.gallery = `Could not load the gallery (${error.code || 'unknown error'}). Publish the Firestore rule for the "gallery" collection.`;
+                renderGallery();
+                console.error(error);
+            });
+            state.unsubscribers.push(unsubscribe);
+        }
+
+        function listenToGalleryCollections() {
+            const unsubscribe = onSnapshot(collection(db, 'galleryCollections'), (snapshot) => {
+                state.galleryCollections = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+                state.galleryCollections.sort((first, second) => cleanCollectionName(first.name).localeCompare(cleanCollectionName(second.name), undefined, { sensitivity: 'base' }));
+                delete state.errors.galleryCollections;
+                renderGallery();
+            }, (error) => {
+                state.errors.galleryCollections = `Could not load collections (${error.code || 'unknown error'}). Publish the Firestore rule for "galleryCollections".`;
                 renderGallery();
                 console.error(error);
             });
@@ -727,7 +895,7 @@
             });
         }
 
-        async function uploadOne(file, caption, setStatus) {
+        async function uploadOne(file, caption, collectionId, setStatus) {
             const kind = mediaKind(file);
             if (!kind) throw new Error('Unsupported file type. Use JPG, PNG, WebP, GIF, AVIF or HEIC photos, or MP4, MOV or WebM videos.');
             if (file.size === 0) throw new Error('This file is empty.');
@@ -740,7 +908,7 @@
             setStatus('Saving...');
             try {
                 await addDoc(collection(db, 'gallery'), {
-                    publicId: signed.publicId, resourceType: kind, caption,
+                    publicId: signed.publicId, resourceType: kind, caption, collectionId: collectionId || null,
                     width: result.width ?? null, height: result.height ?? null, bytes: result.bytes ?? file.size,
                     format: result.format ?? null, duration: result.duration ?? null, createdAt: serverTimestamp()
                 });
@@ -755,8 +923,22 @@
             const files = Array.from(input.files || []);
             if (!files.length) { showToast('Choose one or more photos or videos first.'); return; }
             const caption = $('gallery-caption').value.trim().slice(0, 80);
+            const chosen = $('gallery-collection').value;
+            if (!chosen) { showToast('Choose a collection first, or create a new one.'); return; }
             const button = $('gallery-upload');
             button.disabled = true;
+            let collectionId = chosen;
+            if (chosen === NEW_COLLECTION) {
+                try {
+                    collectionId = await ensureCollection($('gallery-new-collection').value);
+                    state.selectCollectionId = collectionId;
+                    $('gallery-new-collection').value = '';
+                } catch (error) {
+                    button.disabled = false;
+                    showToast(error.message || 'Could not create the collection.');
+                    return;
+                }
+            }
             let added = 0;
             for (const file of files) {
                 const row = document.createElement('p');
@@ -769,7 +951,7 @@
                 row.append(name, status);
                 $('gallery-progress').append(row);
                 try {
-                    await uploadOne(file, caption, (text) => { status.textContent = text; });
+                    await uploadOne(file, caption, collectionId, (text) => { status.textContent = text; });
                     status.textContent = 'Added';
                     status.className = 'shrink-0 text-moss';
                     added += 1;
@@ -816,6 +998,7 @@
                 state.unsubscribers.push(unsubscribe);
             }
             listenToGallery();
+            listenToGalleryCollections();
         }
 
         $('login-form').addEventListener('submit', async (event) => {
@@ -842,6 +1025,21 @@
             if (event.target.closest('[data-view="gallery"]')) openGallery();
         });
         $('gallery-upload').addEventListener('click', uploadFiles);
+        $('gallery-collection').addEventListener('change', () => {
+            const creating = $('gallery-collection').value === NEW_COLLECTION;
+            $('gallery-new-collection-label').classList.toggle('hidden', !creating);
+            if (creating) $('gallery-new-collection').focus();
+        });
+        $('collection-manager').addEventListener('click', (event) => {
+            const renameButton = event.target.closest('[data-collection-rename]');
+            if (renameButton) { renameCollection(renameButton.dataset.collectionRename); return; }
+            const deleteButton = event.target.closest('[data-collection-delete]');
+            if (deleteButton) removeCollection(deleteButton.dataset.collectionDelete);
+        });
+        $('gallery-grid').addEventListener('change', (event) => {
+            const select = event.target.closest('[data-gallery-move]');
+            if (select) moveGalleryItem(select.dataset.galleryMove, select.value);
+        });
         $('gallery-grid').addEventListener('click', (event) => {
             const button = event.target.closest('[data-gallery-delete]');
             if (button) deleteGalleryItem(button.dataset.galleryDelete);
