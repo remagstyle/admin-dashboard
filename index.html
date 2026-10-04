@@ -160,6 +160,11 @@
             <div class="mt-6 flex justify-end gap-2"><button id="cancel-account" type="button" class="focus-ring border border-line px-4 py-3 text-[10px] uppercase tracking-[0.16em]">Cancel</button><button id="save-account" class="focus-ring bg-ink px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white hover:bg-black/80">Create document</button></div>
         </form>
     </div>
+    <div id="photo-viewer" class="fixed inset-0 z-40 hidden flex-col items-center justify-center gap-4 bg-black/90 p-4" role="dialog" aria-modal="true" aria-label="Inspiration photo">
+        <button id="photo-viewer-close" type="button" aria-label="Close photo" class="focus-ring absolute right-4 top-3 px-2 text-3xl text-white/80 hover:text-white">&times;</button>
+        <img id="photo-viewer-image" alt="Inspiration photo" class="max-h-[78vh] max-w-full object-contain">
+        <a id="photo-viewer-download" class="focus-ring border border-white/60 px-4 py-2 text-[10px] uppercase tracking-[0.16em] text-white hover:bg-white hover:text-ink">Save photo</a>
+    </div>
     <div id="toast" role="status" class="fixed bottom-5 right-5 z-30 hidden max-w-sm border border-ink bg-ink px-4 py-3 text-xs text-white"></div>
 
     <script type="module">
@@ -191,7 +196,7 @@
             accounts: { label: 'Accounts', kicker: 'Invoices and receipts', searchable: ['documentNumber', 'documentType', 'clientName', 'clientEmail', 'orderNumber'], heading: (item) => item.clientName || 'Unnamed client', subheading: (item) => [item.documentNumber, item.documentType].filter(Boolean).join(' / ') },
             users: { label: 'Users', kicker: 'Client profiles', searchable: ['name', 'displayName', 'email', 'uid'], heading: (item) => item.displayName || item.name || item.email || 'User profile', subheading: (item) => item.email || item.uid || item.id }
         };
-        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [], gallery: [], galleryCollections: [], galleryOpen: false };
+        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [], gallery: [], galleryCollections: [], galleryOpen: false, photoUrls: [] };
         const $ = (id) => document.getElementById(id);
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
         const displayValue = (value) => value?.toDate?.().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) || (value instanceof Date ? value.toLocaleString() : String(value ?? ''));
@@ -297,7 +302,11 @@
             $('detail-title').textContent = config.heading(record);
             $('delete-record').textContent = name === 'users' ? 'Delete profile record' : `Delete ${name.slice(0, -1)}`;
             $('detail-content').innerHTML = detailMarkup(name, record);
-            if (name === 'orders') addMeasurementsDisclosure(record);
+            releasePhotoUrls();
+            if (name === 'orders') {
+                addInspirationSection(record);
+                addMeasurementsDisclosure(record);
+            }
             if (name === 'orders') {
                 if (isOrderPaid(record)) addPaymentSummary(record);
                 addPaymentAmountEditor(record);
@@ -306,6 +315,122 @@
             $('detail-dialog').classList.remove('hidden');
             $('detail-dialog').classList.add('flex');
             $('close-detail').focus();
+        }
+
+        // ---------- Inspiration photos on orders (private; fetched through the media Worker with the admin login) ----------
+        const INSPIRATION_ID_RE = /^remagstyle-inspiration\/[A-Za-z0-9]{1,128}\/[a-f0-9]{32}$/;
+        const INSPIRATION_FORMATS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'heic', 'heif'];
+        const inspirationPhotosOf = (record) => (Array.isArray(record?.inspirationPhotos) ? record.inspirationPhotos : [])
+            .filter((photo) => photo && INSPIRATION_ID_RE.test(String(photo.publicId)))
+            .slice(0, 10)
+            .map((photo) => ({ publicId: photo.publicId, format: INSPIRATION_FORMATS.includes(String(photo.format).toLowerCase()) ? String(photo.format).toLowerCase() : 'jpg' }));
+        const inspirationLinksOf = (record) => (Array.isArray(record?.inspirationLinks) ? record.inspirationLinks : [])
+            .map((link) => String(link ?? '').trim()).filter(Boolean).slice(0, 20);
+
+        function releasePhotoUrls() {
+            state.photoUrls.forEach((url) => URL.revokeObjectURL(url));
+            state.photoUrls = [];
+        }
+
+        async function fetchInspirationPhoto(photo) {
+            if (!auth.currentUser) throw new Error('Please sign in again.');
+            const token = await auth.currentUser.getIdToken();
+            const response = await fetch(`${MEDIA_WORKER_URL}/view-inspiration`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ publicId: photo.publicId, format: photo.format })
+            });
+            const type = response.headers.get('Content-Type') || '';
+            if (!response.ok || !type.startsWith('image/')) throw new Error('This photo could not be loaded.');
+            return URL.createObjectURL(await response.blob());
+        }
+
+        function openPhotoViewer(url, number, format) {
+            $('photo-viewer-image').src = url;
+            $('photo-viewer-download').href = url;
+            $('photo-viewer-download').setAttribute('download', `inspiration-${number}.${format === 'jpeg' ? 'jpg' : format}`);
+            $('photo-viewer').classList.remove('hidden');
+            $('photo-viewer').classList.add('flex');
+            $('photo-viewer-close').focus();
+        }
+
+        function closePhotoViewer() {
+            const open = !$('photo-viewer').classList.contains('hidden');
+            $('photo-viewer').classList.add('hidden');
+            $('photo-viewer').classList.remove('flex');
+            $('photo-viewer-image').removeAttribute('src');
+            return open;
+        }
+
+        // Built with text and properties only. Anything a client typed is shown as text, never run as HTML.
+        function addInspirationSection(record) {
+            const photosList = inspirationPhotosOf(record);
+            const links = inspirationLinksOf(record);
+            if (!photosList.length && !links.length) return;
+            const section = document.createElement('section');
+            section.id = 'inspiration-section';
+            section.className = 'border-b border-line py-4';
+            const heading = document.createElement('p');
+            heading.className = 'text-[10px] uppercase tracking-[0.16em] text-stone-500';
+            heading.textContent = photosList.length ? `Inspiration photos (${photosList.length})` : 'Inspiration links';
+            section.append(heading);
+            if (photosList.length) {
+                const grid = document.createElement('div');
+                grid.className = 'mt-3 grid grid-cols-3 gap-3';
+                photosList.forEach((photo, index) => {
+                    const tile = document.createElement('button');
+                    tile.type = 'button';
+                    tile.className = 'focus-ring relative flex aspect-square items-center justify-center overflow-hidden border border-line bg-paper text-[10px] uppercase tracking-[0.12em] text-stone-500';
+                    tile.setAttribute('aria-label', `Open inspiration photo ${index + 1}`);
+                    tile.textContent = 'Loading...';
+                    tile.disabled = true;
+                    grid.append(tile);
+                    fetchInspirationPhoto(photo).then((url) => {
+                        if (!section.isConnected || state.selected?.id !== record.id) { URL.revokeObjectURL(url); return; }
+                        state.photoUrls.push(url);
+                        const picture = document.createElement('img');
+                        picture.src = url;
+                        picture.alt = `Inspiration photo ${index + 1}`;
+                        picture.className = 'h-full w-full object-cover';
+                        tile.textContent = '';
+                        tile.append(picture);
+                        tile.disabled = false;
+                        tile.addEventListener('click', () => openPhotoViewer(url, index + 1, photo.format));
+                    }).catch((error) => {
+                        console.error('Could not load an inspiration photo:', error);
+                        tile.textContent = 'Could not load';
+                    });
+                });
+                section.append(grid);
+            }
+            if (links.length) {
+                const list = document.createElement('ul');
+                list.className = 'mt-3 space-y-1 text-xs';
+                if (photosList.length) {
+                    const label = document.createElement('p');
+                    label.className = 'mt-4 text-[10px] uppercase tracking-[0.16em] text-stone-500';
+                    label.textContent = 'Inspiration links';
+                    section.append(label);
+                }
+                for (const link of links) {
+                    const item = document.createElement('li');
+                    item.className = 'break-all';
+                    if (/^https?:\/\//i.test(link)) {
+                        const anchor = document.createElement('a');
+                        anchor.href = link;
+                        anchor.target = '_blank';
+                        anchor.rel = 'noopener noreferrer';
+                        anchor.className = 'underline';
+                        anchor.textContent = link;
+                        item.append(anchor);
+                    } else item.textContent = link;
+                    list.append(item);
+                }
+                section.append(list);
+            }
+            const statusLabel = $('edit-status')?.closest('label');
+            if (statusLabel) statusLabel.parentNode.insertBefore(section, statusLabel);
+            else $('detail-content').append(section);
         }
 
         function addMeasurementsDisclosure(record) {
@@ -523,6 +648,8 @@
             } else if (!window.confirm(`Permanently delete this ${label}? This cannot be undone.`)) return;
             try {
                 await deleteDoc(doc(db, name, record.id));
+                // The order is gone, so remove its private photos too (best effort; the order is already deleted).
+                if (name === 'orders') for (const photo of inspirationPhotosOf(record)) workerPost('/delete-inspiration', { publicId: photo.publicId }).catch((error) => console.error('Could not remove an inspiration photo:', error));
                 closeDetail();
                 showToast(`${label[0].toUpperCase()}${label.slice(1)} deleted.`);
             } catch (error) {
@@ -532,6 +659,8 @@
         }
 
         function closeDetail() {
+            closePhotoViewer();
+            releasePhotoUrls();
             $('detail-dialog').classList.add('hidden');
             $('detail-dialog').classList.remove('flex');
             state.selected = null;
@@ -1062,6 +1191,8 @@
         });
         $('delete-record').addEventListener('click', deleteRecord);
         $('close-detail').addEventListener('click', closeDetail);
+        $('photo-viewer-close').addEventListener('click', closePhotoViewer);
+        $('photo-viewer').addEventListener('click', (event) => { if (event.target === $('photo-viewer')) closePhotoViewer(); });
         $('close-detail-footer').addEventListener('click', closeDetail);
         $('detail-dialog').addEventListener('click', (event) => { if (event.target === $('detail-dialog')) closeDetail(); });
         $('create-account').addEventListener('click', () => { $('account-dialog').classList.remove('hidden'); $('account-dialog').classList.add('flex'); $('account-client-name').focus(); });
@@ -1070,7 +1201,10 @@
         $('account-dialog').addEventListener('click', (event) => { if (event.target === $('account-dialog')) closeAccountForm(); });
         $('account-form').addEventListener('submit', createAccountDocument);
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') { closeDetail(); closeAccountForm(); closeMobileMenu(); }
+            if (event.key === 'Escape') {
+                if (closePhotoViewer()) return; // close just the big photo first
+                closeDetail(); closeAccountForm(); closeMobileMenu();
+            }
         });
 
         onAuthStateChanged(auth, (user) => {
