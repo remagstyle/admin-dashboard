@@ -1,0 +1,36 @@
+{
+  "source": "Metricool",
+  "brand": "REMAGSTYLE",
+  "generatedAt": "2026-10-29T18:20:00-07:00",
+  "range": { "from": "2026-09-29", "to": "2026-10-29" },
+  "note": "Metricool connected these accounts on 2026-10-28/29. Follower counts and history fill in after its first full sync.",
+  "platforms": {
+    "instagram": {
+      "handle": "@remagstyle",
+      "url": "https://www.instagram.com/remagstyle/",
+      "metrics": { "followers": 0, "following": 0, "views": 0, "reach": 0, "interactions": 0, "posts": 0, "newFollowers": 0 },
+      "series": [ { "date": "2026-10-29", "followers": 0, "views": 0, "interactions": 0 } ],
+      "publicListing": { "followers": 690, "following": 1029, "posts": 63, "note": "Public Instagram listing, capture date not verified" }
+    },
+    "tiktok": {
+      "handle": "@remagstyle",
+      "url": "https://www.tiktok.com/@remagstyle",
+      "metrics": { "followers": 0, "following": null, "views": 0, "reach": 0, "interactions": 0, "posts": 0, "newFollowers": 0 },
+      "series": [ { "date": "2026-10-29", "followers": 0, "views": 0, "interactions": 0 } ]
+    },
+    "pinterest": {
+      "handle": "RemagStyle",
+      "url": "https://www.pinterest.com/RemagStyle/",
+      "metrics": { "followers": 0, "following": null, "views": 0, "reach": null, "interactions": 0, "posts": 0, "newFollowers": 0 },
+      "series": [ { "date": "2026-10-29", "followers": 0, "views": 0, "interactions": 0 } ]
+    }
+  },
+  "scheduled": [
+    { "date": "2026-11-02T10:00:00-08:00", "networks": ["instagram"], "title": "Brand intro", "format": "Image post" },
+    { "date": "2026-11-04T10:00:00-08:00", "networks": ["instagram"], "title": "Kente 101", "format": "Carousel, 5 slides" },
+    { "date": "2026-11-04T12:00:00-08:00", "networks": ["tiktok"], "title": "Kente 101", "format": "Video" },
+    { "date": "2026-11-06T10:00:00-08:00", "networks": ["instagram"], "title": "Bespoke vs off-the-rack", "format": "Carousel, 5 slides" },
+    { "date": "2026-11-06T12:00:00-08:00", "networks": ["tiktok"], "title": "Bespoke vs off-the-rack", "format": "Video" },
+    { "date": "2026-11-09T10:00:00-08:00", "networks": ["instagram"], "title": "Adinkra: symbols with meaning", "format": "Carousel, 4 slides" }
+  ]
+}

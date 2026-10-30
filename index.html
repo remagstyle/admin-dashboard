@@ -19,6 +19,34 @@
             .enter { animation: enter 260ms ease-out both; }
             @keyframes enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         }
+        /* Social media dashboard (kept separate from the compiled Tailwind so no rebuild is needed) */
+        .sm-card { border: 1px solid #DDD9D0; background: #fff; padding: 1.25rem; }
+        .sm-grid { display: grid; gap: .75rem; }
+        .sm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .sm-platforms { grid-template-columns: minmax(0, 1fr); }
+        .sm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+        .sm-compare { display: grid; gap: 1.5rem; margin-top: 1.25rem; }
+        .sm-compare > .sm-empty { grid-column: 1 / -1; }
+        @media (min-width: 640px) { .sm-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } .sm-compare { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1180px) { .sm-platforms { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .sm-label { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: #78716c; }
+        .sm-value { margin-top: .5rem; font-size: 1.875rem; line-height: 1.1; }
+        .sm-sub { margin-top: .4rem; font-size: 11px; line-height: 1.5; color: #78716c; }
+        .sm-bar { height: 6px; background: #ECE9E2; }
+        .sm-bar > span { display: block; height: 100%; }
+        .sm-row { display: grid; grid-template-columns: 5rem minmax(0, 1fr) 4rem; gap: .75rem; align-items: center; font-size: 11px; }
+        .sm-empty { border: 1px dashed #DDD9D0; padding: 1.25rem; font-size: 12px; color: #78716c; }
+        .sm-note { border: 1px solid #DDD9D0; background: #ECE9E2; padding: .75rem 1rem; font-size: 11px; line-height: 1.6; }
+        .sm-chip { display: inline-block; padding: 1px 6px; border: 1px solid #DDD9D0; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+        .sm-legend { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; font-size: 11px; }
+        .sm-dot { display: inline-block; width: 8px; height: 8px; margin-right: .4rem; }
+        .sm-input { width: 5.5rem; border: 1px solid #DDD9D0; background: #F7F6F2; padding: .3rem .5rem; font-size: 12px; text-align: right; }
+        .sm-btn { display: inline-block; border: 1px solid #DDD9D0; background: #fff; padding: .65rem 1rem; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #161616; text-decoration: none; }
+        .sm-btn:hover { border-color: #161616; }
+        .sm-svg { display: block; width: 100%; height: auto; }
+        .sm-svg text { font-size: 10px; fill: #78716c; }
+        .sm-plan-row { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) auto; gap: .75rem; align-items: center; padding: .75rem 0; border-top: 1px solid #DDD9D0; font-size: 12px; }
+        @media (max-width: 640px) { .sm-plan-row { grid-template-columns: minmax(0, 1fr); gap: .35rem; } }
     </style>
 </head>
 <body class="min-h-screen bg-paper text-ink">
@@ -52,6 +80,7 @@
                 <button data-collection="accounts" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Accounts</span><span data-count="accounts">0</span></button>
                 <button data-collection="users" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Users</span><span data-count="users">0</span></button>
                 <button data-view="gallery" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Gallery</span><span data-gallery-count>0</span></button>
+                <button data-view="social" class="nav-button focus-ring flex w-full items-center justify-between px-3 py-3 text-left text-[10px] uppercase tracking-[0.16em]"><span>Social</span><span aria-hidden="true">&#8599;</span></button>
             </nav>
             <div class="mt-auto border-t border-line pt-5">
                 <p id="admin-email" class="break-all text-[9px] text-stone-500"></p>
@@ -95,6 +124,43 @@
             </div>
             <p id="load-error" role="status" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-xs text-red-700"></p>
             <div id="records-list" class="mt-5 grid gap-3 xl:grid-cols-2" aria-live="polite"></div>
+            <section id="social-panel" class="hidden" aria-label="Social media monitoring">
+                <div class="mt-7 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                    <p id="social-status" class="text-[11px] text-stone-500" role="status"></p>
+                    <div class="flex gap-2">
+                        <button id="social-refresh" type="button" class="sm-btn focus-ring">Refresh data</button>
+                        <a href="https://app.metricool.com/" target="_blank" rel="noopener" class="sm-btn focus-ring">Open Metricool</a>
+                    </div>
+                </div>
+                <p id="social-error" role="status" class="mt-4 hidden border border-red-200 bg-red-50 p-3 text-xs text-red-700"></p>
+                <p id="social-note" class="sm-note mt-4 hidden"></p>
+                <div id="social-kpis" class="sm-grid sm-kpis mt-4" aria-label="Headline numbers"></div>
+                <div class="sm-card mt-4">
+                    <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                        <div><p class="sm-label">Trend</p><h2 class="mt-1 font-serif text-3xl font-light">Growth over time</h2></div>
+                        <label class="sm-label">Metric
+                            <select id="social-metric" class="ml-2 border border-line bg-white px-3 py-2.5 text-xs normal-case tracking-normal outline-none focus:border-ink">
+                                <option value="followers">Followers</option>
+                                <option value="views">Views</option>
+                                <option value="interactions">Interactions</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div id="social-trend" class="mt-5"></div>
+                    <div id="social-legend" class="sm-legend"></div>
+                </div>
+                <div class="sm-card mt-4">
+                    <p class="sm-label">Comparison</p>
+                    <h2 class="mt-1 font-serif text-3xl font-light">Platform by platform</h2>
+                    <div id="social-compare" class="sm-compare"></div>
+                </div>
+                <div id="social-platforms" class="sm-grid sm-platforms mt-4"></div>
+                <div class="sm-card mt-4">
+                    <p class="sm-label">Progress</p>
+                    <h2 class="mt-1 font-serif text-3xl font-light">Content plan</h2>
+                    <div id="social-plan" class="mt-4"></div>
+                </div>
+            </section>
             <section id="gallery-panel" class="hidden" aria-label="Website gallery">
                 <div class="mt-7 border border-line bg-white p-5">
                     <p class="text-[10px] uppercase tracking-[0.2em] text-stone-500">Add to the website gallery</p>
@@ -196,7 +262,7 @@
             accounts: { label: 'Accounts', kicker: 'Invoices and receipts', searchable: ['documentNumber', 'documentType', 'clientName', 'clientEmail', 'orderNumber'], heading: (item) => item.clientName || 'Unnamed client', subheading: (item) => [item.documentNumber, item.documentType].filter(Boolean).join(' / ') },
             users: { label: 'Users', kicker: 'Client profiles', searchable: ['name', 'displayName', 'email', 'uid'], heading: (item) => item.displayName || item.name || item.email || 'User profile', subheading: (item) => item.email || item.uid || item.id }
         };
-        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [], gallery: [], galleryCollections: [], galleryOpen: false, photoUrls: [] };
+        const state = { activeCollection: 'orders', records: { orders: [], appointments: [], accounts: [], users: [] }, errors: {}, selected: null, unsubscribers: [], gallery: [], galleryCollections: [], galleryOpen: false, photoUrls: [], socialOpen: false, social: null, socialMetric: 'followers' };
         const $ = (id) => document.getElementById(id);
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
         const displayValue = (value) => value?.toDate?.().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) || (value instanceof Date ? value.toLocaleString() : String(value ?? ''));
@@ -220,10 +286,11 @@
         function renderLoadError() {
             const error = state.errors[state.activeCollection];
             $('load-error').textContent = error || '';
-            $('load-error').classList.toggle('hidden', state.galleryOpen || !error);
+            $('load-error').classList.toggle('hidden', state.galleryOpen || state.socialOpen || !error);
         }
 
         function renderCollection() {
+            if (state.socialOpen) return;
             const name = state.activeCollection;
             const config = collections[name];
             const query = $('record-search').value.trim().toLowerCase();
@@ -262,6 +329,7 @@
         }
 
         function setActiveCollection(name, closeMenu = true) {
+            setSocialOpen(false);
             setGalleryOpen(false);
             state.activeCollection = name;
             document.querySelectorAll('.nav-button').forEach((button) => {
@@ -761,6 +829,7 @@
         }
 
         function openGallery() {
+            setSocialOpen(false);
             setGalleryOpen(true);
             document.querySelectorAll('.nav-button').forEach((button) => {
                 if (button.dataset.view === 'gallery') button.setAttribute('aria-current', 'page');
@@ -768,6 +837,183 @@
             });
             renderGallery();
             closeMobileMenu();
+        }
+
+        // ---- Social media monitoring -------------------------------------------------
+        // Reads social-data.json (a snapshot exported from Metricool). Charts are plain SVG, so no extra scripts are loaded.
+        const SOCIAL_NETWORKS = [
+            { key: 'instagram', label: 'Instagram', color: '#161616' },
+            { key: 'tiktok', label: 'TikTok', color: '#4F6656' },
+            { key: 'pinterest', label: 'Pinterest', color: '#B8893B' }
+        ];
+        const SOCIAL_TARGET_KEY = 'remag-social-follower-goals';
+        const SOCIAL_DEFAULT_TARGETS = { instagram: 1000, tiktok: 500, pinterest: 250 };
+        const fmtNumber = (value) => (value === null || value === undefined || Number.isNaN(Number(value))) ? '–' : Number(value).toLocaleString('en-US');
+
+        function loadSocialTargets() {
+            try {
+                return { ...SOCIAL_DEFAULT_TARGETS, ...JSON.parse(localStorage.getItem(SOCIAL_TARGET_KEY) || '{}') };
+            } catch (error) {
+                return { ...SOCIAL_DEFAULT_TARGETS };
+            }
+        }
+
+        function saveSocialTargets(targets) {
+            try { localStorage.setItem(SOCIAL_TARGET_KEY, JSON.stringify(targets)); } catch (error) { /* goals just reset next visit */ }
+        }
+
+        function setSocialOpen(open) {
+            state.socialOpen = open;
+            $('social-panel').classList.toggle('hidden', !open);
+            if (!open) return;
+            state.galleryOpen = false;
+            for (const id of ['stats-section', 'collection-controls', 'records-list', 'gallery-panel']) $(id).classList.add('hidden');
+            $('load-error').classList.add('hidden');
+            $('create-account').classList.add('hidden');
+            $('view-kicker').textContent = 'Social media';
+            $('view-title').textContent = 'Social';
+        }
+
+        function openSocial() {
+            setSocialOpen(true);
+            document.querySelectorAll('.nav-button').forEach((button) => {
+                if (button.dataset.view === 'social') button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            });
+            loadSocial();
+            closeMobileMenu();
+        }
+
+        async function loadSocial(force = false) {
+            if (state.social && !force) { renderSocial(); return; }
+            $('social-status').textContent = 'Loading…';
+            try {
+                const response = await fetch(`social-data.json?t=${Date.now()}`, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                state.social = await response.json();
+                $('social-error').classList.add('hidden');
+            } catch (error) {
+                state.social = null;
+                $('social-error').textContent = `Could not load the social snapshot (${error.message || error}).`;
+                $('social-error').classList.remove('hidden');
+            }
+            renderSocial();
+        }
+
+        function socialTotals(data) {
+            const totals = { followers: 0, views: 0, interactions: 0, posts: 0, newFollowers: 0 };
+            for (const net of SOCIAL_NETWORKS) {
+                const metrics = data.platforms?.[net.key]?.metrics || {};
+                for (const key of Object.keys(totals)) totals[key] += Number(metrics[key]) || 0;
+            }
+            return totals;
+        }
+
+        function socialTrendChart(data, metric) {
+            const series = SOCIAL_NETWORKS.map((net) => ({
+                net,
+                points: (data.platforms?.[net.key]?.series || []).filter((point) => point && point.date).map((point) => ({ date: String(point.date), value: Number(point[metric]) || 0 }))
+            }));
+            const dates = [...new Set(series.flatMap((entry) => entry.points.map((point) => point.date)))].sort();
+            if (dates.length < 2) return '<p class="sm-empty">The trend line appears once there are two or more days of data. Metricool is still collecting history for these accounts.</p>';
+            const width = 620, height = 200, pad = { left: 44, right: 14, top: 14, bottom: 26 };
+            const max = Math.max(1, ...series.flatMap((entry) => entry.points.map((point) => point.value)));
+            const x = (date) => pad.left + (dates.indexOf(date) * (width - pad.left - pad.right)) / (dates.length - 1);
+            const y = (value) => height - pad.bottom - (value / max) * (height - pad.top - pad.bottom);
+            const grid = [0, 0.5, 1].map((fraction) => {
+                const value = max * fraction;
+                return `<line x1="${pad.left}" x2="${width - pad.right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" stroke="#DDD9D0" stroke-width="1"/><text x="${pad.left - 6}" y="${(y(value) + 3).toFixed(1)}" text-anchor="end">${fmtNumber(Math.round(value))}</text>`;
+            }).join('');
+            const lines = series.filter((entry) => entry.points.length).map((entry) => {
+                const path = entry.points.map((point, index) => `${index ? 'L' : 'M'}${x(point.date).toFixed(1)},${y(point.value).toFixed(1)}`).join(' ');
+                const dots = entry.points.map((point) => `<circle cx="${x(point.date).toFixed(1)}" cy="${y(point.value).toFixed(1)}" r="2.5" fill="${entry.net.color}"/>`).join('');
+                return `<path d="${path}" fill="none" stroke="${entry.net.color}" stroke-width="2"/>${dots}`;
+            }).join('');
+            const label = (date) => new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            return `<svg class="sm-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Line chart of ${escapeHtml(metric)} for each platform over time">${grid}${lines}<text x="${pad.left}" y="${height - 6}">${label(dates[0])}</text><text x="${width - pad.right}" y="${height - 6}" text-anchor="end">${label(dates[dates.length - 1])}</text></svg>`;
+        }
+
+        function socialCompare(data) {
+            const metrics = [['followers', 'Followers'], ['views', 'Views'], ['interactions', 'Interactions'], ['posts', 'Posts published']];
+            const value = (net, key) => Number(data.platforms?.[net.key]?.metrics?.[key]) || 0;
+            if (!SOCIAL_NETWORKS.some((net) => metrics.some(([key]) => value(net, key) > 0))) {
+                return '<p class="sm-empty">No activity recorded yet. These bars fill in as Metricool syncs each account.</p>';
+            }
+            return metrics.map(([key, title]) => {
+                const max = Math.max(1, ...SOCIAL_NETWORKS.map((net) => value(net, key)));
+                const rows = SOCIAL_NETWORKS.map((net) => `<div class="sm-row"><span>${net.label}</span><div class="sm-bar"><span style="width:${((value(net, key) / max) * 100).toFixed(1)}%;background:${net.color}"></span></div><span class="text-right">${fmtNumber(value(net, key))}</span></div>`).join('');
+                return `<div><p class="sm-label">${title}</p><div class="mt-3 space-y-2">${rows}</div></div>`;
+            }).join('');
+        }
+
+        function socialPlatformCards(data, targets) {
+            return SOCIAL_NETWORKS.map((net) => {
+                const info = data.platforms?.[net.key] || {};
+                const metrics = info.metrics || {};
+                const followers = Number(metrics.followers) || 0;
+                const target = Math.max(1, Number(targets[net.key]) || SOCIAL_DEFAULT_TARGETS[net.key]);
+                const percent = Math.min(100, Math.round((followers / target) * 100));
+                const handle = escapeHtml(info.handle || net.label);
+                const link = /^https:\/\//.test(info.url || '') ? `<a href="${escapeHtml(info.url)}" target="_blank" rel="noopener" class="focus-ring underline">${handle}</a>` : handle;
+                const stat = (title, key) => `<div><p class="sm-label">${title}</p><p class="mt-1 text-sm">${fmtNumber(metrics[key])}</p></div>`;
+                const listing = info.publicListing ? `<p class="sm-sub">The public profile currently shows ${fmtNumber(info.publicListing.followers)} followers and ${fmtNumber(info.publicListing.posts)} posts. ${escapeHtml(info.publicListing.note || '')}</p>` : '';
+                return `<article class="sm-card"><p class="sm-label"><span class="sm-dot" style="background:${net.color}"></span>${net.label}</p><p class="mt-2 text-xs">${link}</p>
+                    <div class="sm-stats mt-4">${stat('Followers', 'followers')}${stat('New', 'newFollowers')}${stat('Posts', 'posts')}${stat('Views', 'views')}${stat('Interactions', 'interactions')}${stat('Reach', 'reach')}</div>
+                    <div class="mt-5"><div class="flex items-center justify-between gap-3 text-[11px]"><span>Follower goal</span><span class="flex items-center gap-2">${fmtNumber(followers)} /<input type="number" min="1" step="1" value="${target}" data-social-target="${net.key}" class="sm-input focus-ring" aria-label="${net.label} follower goal"></span></div>
+                    <div class="sm-bar mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-label="${net.label} follower goal progress"><span style="width:${percent}%;background:${net.color}"></span></div>
+                    <p class="sm-sub">${percent}% of goal</p></div>${listing}</article>`;
+            }).join('');
+        }
+
+        function socialPlan(data) {
+            const items = (data.scheduled || []).map((item) => ({ ...item, when: new Date(item.date) })).filter((item) => !Number.isNaN(item.when.getTime())).sort((first, second) => first.when - second.when);
+            if (!items.length) return '<p class="sm-empty">No posts are scheduled in this snapshot.</p>';
+            const now = new Date();
+            const reached = items.filter((item) => item.when <= now).length;
+            const percent = Math.round((reached / items.length) * 100);
+            const rows = items.map((item) => {
+                const chips = (item.networks || []).map((key) => `<span class="sm-chip">${escapeHtml(SOCIAL_NETWORKS.find((net) => net.key === key)?.label || key)}</span>`).join(' ');
+                const when = item.when.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                return `<div class="sm-plan-row"><span class="text-stone-500">${escapeHtml(when)}</span><span>${escapeHtml(item.title || '')}<span class="text-stone-500"> · ${escapeHtml(item.format || '')}</span></span><span>${chips} <span class="sm-chip">${item.when <= now ? 'Due' : 'Scheduled'}</span></span></div>`;
+            }).join('');
+            return `<div class="flex items-center justify-between text-[11px]"><span>${reached} of ${items.length} scheduled posts have reached their time</span><span>${percent}%</span></div>
+                <div class="sm-bar mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}" aria-label="Content plan progress"><span style="width:${percent}%;background:#4F6656"></span></div>
+                <div class="mt-4">${rows}</div><p class="sm-sub">Times are shown in your device's local time.</p>`;
+        }
+
+        function renderSocial() {
+            const data = state.social;
+            const ids = ['social-kpis', 'social-trend', 'social-legend', 'social-compare', 'social-platforms', 'social-plan'];
+            if (!data) {
+                ids.forEach((id) => { $(id).innerHTML = ''; });
+                $('social-status').textContent = '';
+                $('social-note').classList.add('hidden');
+                return;
+            }
+            const targets = loadSocialTargets();
+            const totals = socialTotals(data);
+            const engagement = totals.views > 0 ? `${((totals.interactions / totals.views) * 100).toFixed(1)}%` : '–';
+            const kpi = (title, value, sub) => `<div class="sm-card"><p class="sm-label">${title}</p><p class="sm-value font-serif">${value}</p><p class="sm-sub">${sub}</p></div>`;
+            $('social-kpis').innerHTML = kpi('Total followers', fmtNumber(totals.followers), `${totals.newFollowers >= 0 ? '+' : ''}${fmtNumber(totals.newFollowers)} this period`)
+                + kpi('Views', fmtNumber(totals.views), 'All platforms')
+                + kpi('Interactions', fmtNumber(totals.interactions), 'Likes, comments, saves, shares')
+                + kpi('Engagement', engagement, 'Interactions ÷ views');
+            $('social-metric').value = state.socialMetric;
+            $('social-trend').innerHTML = socialTrendChart(data, state.socialMetric);
+            $('social-legend').innerHTML = SOCIAL_NETWORKS.map((net) => `<span><span class="sm-dot" style="background:${net.color}"></span>${net.label}</span>`).join('');
+            $('social-compare').innerHTML = socialCompare(data);
+            $('social-platforms').innerHTML = socialPlatformCards(data, targets);
+            $('social-plan').innerHTML = socialPlan(data);
+            const generated = data.generatedAt ? new Date(data.generatedAt) : null;
+            let status = `Data from ${escapeHtml(data.source || 'Metricool')}`;
+            if (generated && !Number.isNaN(generated.getTime())) {
+                const age = Math.floor((Date.now() - generated.getTime()) / 86400000);
+                status += ` · updated ${generated.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+                if (age > 7) status += ` · this snapshot is ${age} days old, so it needs refreshing from Metricool`;
+            }
+            $('social-status').innerHTML = status;
+            $('social-note').textContent = data.note || '';
+            $('social-note').classList.toggle('hidden', !data.note);
         }
 
         const COLLECTION_NAME_MAX = 40;
@@ -1152,6 +1398,16 @@
             const button = event.target.closest('[data-collection]');
             if (button) setActiveCollection(button.dataset.collection);
             if (event.target.closest('[data-view="gallery"]')) openGallery();
+            if (event.target.closest('[data-view="social"]')) openSocial();
+        });
+        $('social-refresh').addEventListener('click', () => loadSocial(true));
+        $('social-metric').addEventListener('change', (event) => { state.socialMetric = event.target.value; renderSocial(); });
+        $('social-platforms').addEventListener('change', (event) => {
+            const input = event.target.closest('[data-social-target]');
+            if (!input) return;
+            const goal = Math.max(1, Math.round(Number(input.value) || 0));
+            saveSocialTargets({ ...loadSocialTargets(), [input.dataset.socialTarget]: goal });
+            renderSocial();
         });
         $('gallery-upload').addEventListener('click', uploadFiles);
         $('gallery-collection').addEventListener('change', () => {
